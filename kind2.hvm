@@ -2,11 +2,72 @@
 // # Prelude                                                                   #
 // #############################################################################
 
+// FIXME: use bruijn levels on free vars; right now, it considers equal names equal vars
+
 // 1. remover Use do HOAS
 // 2. usar bruijn levels no Equal, enviando o depth atual
 // 3. fazer o checker injetar HLev, não HVar
 // 4. usar o case de Var == Var para capturar igualdades geradas no LHS
 // 5. as variáveis do body de uma rule precisam ser HLev também - como?
+// --------------------------------------------------------------------
+// 1. 2 equality modes: 
+//    - normal: variáveis diferentes dão erro
+//    - captura: variáveis geram igualdades
+
+//(Nat)          : Type
+//(Zero)         : (Nat)
+//(Succ n:(Nat)) : (Nat)
+//(Not x:(Bool)) : (Bool)
+//(Not (True))   = (False)
+//(Not (False))  = (True)
+//(List t:Type) : Type
+//(Nil t:Type) : (List t)
+//(Cons t:Type x:t xs:(List t)) : (List t)
+//(P x:(List Bool)) : Type
+//(Elim t:(P (True)) b:(Bool)) : (P b)
+//(Elim t            (True)  ) = t
+//(Id t:Type x:t) : t
+//(Id t      x  ) = x
+//(Head t:Type x:(List t)) : t
+//(Head t (Cons k x l))    = l
+//(Main) : (List (Bool))
+//(Main) = (Cons _ (False) (Cons _ (True) (Nil _)))
+// bad (x : Bool) : Bool
+// bad Zero       = ?
+//      /\
+//      Nat
+//      Bool
+// 
+// Goal:
+// - Bool
+// Context:
+// - e0 : Nat == Bool ????
+//
+// head (t : Set) (x : List t)  : t
+// head t         (Cons u x xs) = x
+//                      /\
+//                   (List u) -> u == t
+//                   (List t)
+//       nunca dar erro, apenas criar igualdades?
+//       todo type mismatch se converte em uma igualdade?
+//       Use deveria ser = a qualquer coisa?
+//       Quando:
+//       - (Check ... (Use "u") t): gera um `u : t`
+//       - (Equal ... (Use "u") b): gera um `e : u == b`
+//       !
+// 
+// Type mismatch.
+// - Expected: (List t)
+// - Detected: (List k)
+//  
+// Type mismatch.
+// - Expected: t
+// - Detected: k
+// Context:
+// - t : Type
+// - k : Type
+// - x : k
+// - l : (List k)
 
 // 6764632 / 23521
 // 6785093 / 23521
@@ -923,29 +984,31 @@ FuncEmpty = (Func (Var (Name.Make "?")) (Var (Name.Make "?")) End)
     let next = (StrCons (+ 48 (% n 10)) str)
     ((If (IsOne (< n 10)) λx(x) λx(ShowU32Build (/ n 10) x)) next)
 
+// FIXME: needs file
 // (ShowEquations (List (Pair HTerm HTerm)) : String
-(ShowEquations Nil) = ""
-(ShowEquations (Cons (Pair a b) eqs)) =
-  (StrFlatten [
-    "- "
-    (Show (Low a))
-    " == "
-    (Show (Low b))
-    NewLine
-    (ShowEquations eqs)
-  ])
+//(ShowEquations Nil) = ""
+//(ShowEquations (Cons (Pair a b) eqs)) =
+  //(StrFlatten [
+    //"- "
+    //(Show (Low a))
+    //" == "
+    //(Show (Low b))
+    //NewLine
+    //(ShowEquations eqs)
+  //])
 
+// FIXME: needs file
 // (ShowSubst Subst) : String
-(ShowSubst Nil) = ""
-(ShowSubst (Cons (Pair skey value) subst)) =
-  (StrFlatten [
-    "- "
-    (ShowU32 skey)
-    " <- "
-    (Show (Low value))
-    NewLine
-    (ShowSubst subst)
-  ])
+//(ShowSubst Nil) = ""
+//(ShowSubst (Cons (Pair skey value) subst)) =
+  //(StrFlatten [
+    //"- "
+    //(ShowU32 skey)
+    //" <- "
+    //(Show (Low value))
+    //NewLine
+    //(ShowSubst subst)
+  //])
 
 
 
@@ -1007,99 +1070,93 @@ FuncEmpty = (Func (Var (Name.Make "?")) (Var (Name.Make "?")) End)
 
 // Converts a term to high-order
 // (High file:File term:Term vars:?) : HTerm
-(High file term vars) = (QuadGet (HighGo term file vars 0) λfile λvars λfree λterm term)
+(High file term vars) = (TripGet (HighGo term file vars) λfile λvars λterm term)
 
-  // (HighGo
-  //   term: Term
-  //   file: File
-  //   vars: (List (Pair String HTerm))
-  //   free: U32
-  // ) : (Quad File (List (Pair String HTerm)) U32 HTerm)
+  // (HighGo file:File term:Term file:File vars:(List (Pair String HTerm))) : (Trip File (List (Pair String HTerm)) HTerm)
   
-  (HighGo (Var name) file vars free) = (HighFind name file vars free)
-    (HighFind name file Nil free) =
-      (Quad file Nil (+ free 1) (HLev name free))
-    (HighFind name file (Cons (Pair var val) vars) free) = (HighFound (Name.Equal name var) name var val file vars free)
-      (HighFound 1 name var val file vars free) = (Quad file vars free val)
-      (HighFound 0 name var val file vars free) =
-        (QuadGet (HighFind name file vars free) λfile λvars λfree λgot
-        (Quad file (Cons (Pair var val) vars) free got))
+  (HighGo (Var name) file vars) = (HighFind name file vars)
+    (HighFind name file Nil) = (Trip file Nil (HVar name))
+    (HighFind name file (Cons (Pair var val) vars)) = (HighFound (Name.Equal name var) name var val file vars)
+      (HighFound 1 name var val file vars) = (Trip file vars val)
+      (HighFound 0 name var val file vars) =
+        (TripGet (HighFind name file vars) λfile λvars λgot
+        (Trip file (Cons (Pair var val) vars) got))
 
-  (HighGo (Use name count) file vars free) =
-    //(Quad file vars free (HUse name count)) // ???
-    (HighGo (Var name) file vars free)
+  (HighGo (Use name count) file vars) =
+    //(Trip file vars (HUse name count)) // ???
+    (HighGo (Var name) file vars)
 
-  (HighGo (Ann xval xtyp) file vars free) =
-    (HighGo xval file vars free)
+  (HighGo (Ann xval xtyp) file vars) =
+    (HighGo xval file vars)
 
-  (HighGo Typ file vars free) =
-    (Quad file vars free HTyp)
+  (HighGo Typ file vars) =
+    (Trip file vars HTyp)
 
-  (HighGo (All name type body) file vars free) =
-    (QuadGet (HighGo type file vars free) λfile λvars λfree λtype
-    (QuadGet (HighGo body file (CloneFor body name $x vars) free) λfile λvars λfree λbody
-    (Quad file vars free (HAll type λ$x body))))
+  (HighGo (All name type body) file vars) =
+    (TripGet (HighGo type file vars) λfile λvars λtype
+    (TripGet (HighGo body file (CloneFor body name $x vars)) λfile λvars λbody
+    (Trip file vars (HAll type λ$x body))))
 
-  (HighGo (Let name expr body) file vars free) =
-    (QuadGet (HighGo expr file vars free) λfile λvars λfree λexpr
-    (QuadGet (HighGo body file (CloneFor body name expr vars) free) λfile λvars λfree λbody
-    (Quad file vars free body)))
+  (HighGo (Let name expr body) file vars) =
+    (TripGet (HighGo expr file vars) λfile λvars λexpr
+    (TripGet (HighGo body file (CloneFor body name expr vars)) λfile λvars λbody
+    (Trip file vars body)))
 
-  (HighGo (Lam name body) file vars free) =
-    (QuadGet (HighGo body file (CloneFor body name $x vars) free) λfile λvars λfree λbody
-    (Quad file vars free (HLam λ$x body)))
+  (HighGo (Lam name body) file vars) =
+    (TripGet (HighGo body file (CloneFor body name $x vars)) λfile λvars λbody
+    (Trip file vars (HLam λ$x body)))
 
-  (HighGo (App func argm) file vars free) =
-    (QuadGet (HighGo func file vars free) λfile λvars λfree λfunc
-    (QuadGet (HighGo argm file vars free) λfile λvars λfree λargm
-    (Quad file vars free (HApply func argm))))
+  (HighGo (App func argm) file vars) =
+    (TripGet (HighGo func file vars) λfile λvars λfunc
+    (TripGet (HighGo argm file vars) λfile λvars λargm
+    (Trip file vars (HApply func argm))))
 
-  (HighGo (Ct0 ctid) file vars free) =
+  (HighGo (Ct0 ctid) file vars) =
     (PairGet (File.GotFunc file ctid) λfile λfunc
-    (HighGo.Ctr func (HCt0 ctid) file vars free))
+    (HighGo.Ctr func (HCt0 ctid) file vars))
 
-  (HighGo (Ct1 ctid a) file vars free) =
+  (HighGo (Ct1 ctid a) file vars) =
     (PairGet (File.GotFunc file ctid) λfile λfunc
-    (QuadGet (HighGo a file vars free) λfile λvars λfree λa
-    (HighGo.Ctr func (HCt1 ctid a) file vars free)))
+    (TripGet (HighGo a file vars) λfile λvars λa
+    (HighGo.Ctr func (HCt1 ctid a) file vars)))
 
-  (HighGo (Ct2 ctid a b) file vars free) =
+  (HighGo (Ct2 ctid a b) file vars) =
     (PairGet (File.GotFunc file ctid) λfile λfunc
-    (QuadGet (HighGo a file vars free) λfile λvars λfree λa
-    (QuadGet (HighGo b file vars free) λfile λvars λfree λb
-    (HighGo.Ctr func (HCt2 ctid a b) file vars free))))
+    (TripGet (HighGo a file vars) λfile λvars λa
+    (TripGet (HighGo b file vars) λfile λvars λb
+    (HighGo.Ctr func (HCt2 ctid a b) file vars))))
 
-  (HighGo (Ct3 ctid a b c) file vars free) =
+  (HighGo (Ct3 ctid a b c) file vars) =
     (PairGet (File.GotFunc file ctid) λfile λfunc
-    (QuadGet (HighGo a file vars free) λfile λvars λfree λa
-    (QuadGet (HighGo b file vars free) λfile λvars λfree λb
-    (QuadGet (HighGo c file vars free) λfile λvars λfree λc
-    (HighGo.Ctr func (HCt3 ctid a b c) file vars free)))))
+    (TripGet (HighGo a file vars) λfile λvars λa
+    (TripGet (HighGo b file vars) λfile λvars λb
+    (TripGet (HighGo c file vars) λfile λvars λc
+    (HighGo.Ctr func (HCt3 ctid a b c) file vars)))))
 
-  (HighGo (Ct4 ctid a b c d) file vars free) =
+  (HighGo (Ct4 ctid a b c d) file vars) =
     (PairGet (File.GotFunc file ctid) λfile λfunc
-    (QuadGet (HighGo a file vars free) λfile λvars λfree λa
-    (QuadGet (HighGo b file vars free) λfile λvars λfree λb
-    (QuadGet (HighGo c file vars free) λfile λvars λfree λc
-    (QuadGet (HighGo d file vars free) λfile λvars λfree λd
-    (HighGo.Ctr func (HCt4 ctid a b c d) file vars free))))))
+    (TripGet (HighGo a file vars) λfile λvars λa
+    (TripGet (HighGo b file vars) λfile λvars λb
+    (TripGet (HighGo c file vars) λfile λvars λc
+    (TripGet (HighGo d file vars) λfile λvars λd
+    (HighGo.Ctr func (HCt4 ctid a b c d) file vars))))))
 
-  (HighGo (Arg name expr) file vars free) = 
-    (HighGo expr file vars free)
+  (HighGo (Arg name expr) file vars) = 
+    (HighGo expr file vars)
 
-  (HighGo.Ctr None                        term file vars free) = (Quad file vars free term)
-  (HighGo.Ctr (Some (Func lty rty rules)) term file vars free) = (HFindMatchingRule rules term file vars free)
+  (HighGo.Ctr None                          term file vars) = (Trip file vars term)
+  (HighGo.Ctr (Some (Func lty rty rules)) term file vars) = (HFindMatchingRule rules term file vars)
 
-  (HighGo (Met hash) file vars free) =
-    (Quad file vars free (HMet hash))
+  (HighGo (Met hash) file vars) =
+    (Trip file vars (HMet hash))
 
 
 // TODO: perhaps linearize term?
 // (HFindMatchingRule (List Rule) HTerm File Vars) : HTerm
-(HFindMatchingRule End                  term file vars free) = (Quad file vars free term)
-(HFindMatchingRule (Rule lhs rhs rules) term file vars free) = (HFindMatchingRule.Found (HMatches.Go lhs term) rhs rules file vars free)
-  (HFindMatchingRule.Found (Trip lhs term 0) rhs rules file vars free) = (HFindMatchingRule rules term file vars free)
-  (HFindMatchingRule.Found (Trip lhs term 1) rhs rules file vars free) = (HighGo rhs file ((HMatch.Go lhs term) vars) free)
+(HFindMatchingRule End                  term file vars) = (Trip file vars term)
+(HFindMatchingRule (Rule lhs rhs rules) term file vars) = (HFindMatchingRule.Found (HMatches.Go lhs term) rhs rules file vars)
+  (HFindMatchingRule.Found (Trip lhs term 0) rhs rules file vars) = (HFindMatchingRule rules term file vars)
+  (HFindMatchingRule.Found (Trip lhs term 1) rhs rules file vars) = (HighGo rhs file ((HMatch.Go lhs term) vars))
 
 // High-Order pattern-matching
 
@@ -1280,10 +1337,10 @@ FuncEmpty = (Func (Var (Name.Make "?")) (Var (Name.Make "?")) End)
 (Chain (Checked eqs ars val) b_result) = (b_result eqs ars val)
 
 // (InferGo File Term Ctx) : (Result HTerm)
-(Infer file term ctx) = (InferUnify (InferGo file term ctx Nil Nil) file)
+(Infer file term ctx) = (InferUnify file 0 (InferGo file term ctx Nil Nil))
 
-  (InferUnify (Errored err)         file) = (Errored err)
-  (InferUnify (Checked eqs ars typ) file) = (InferFinish (Unify file eqs ars Empty) typ)
+  (InferUnify file capt (Errored err)        ) = (Errored err)
+  (InferUnify file capt (Checked eqs ars typ)) = (InferFinish (Unify file capt eqs ars Empty) typ)
 
   (InferFinish (Errored err)           typ) = (Errored err)
   (InferFinish (Checked eqs ars subst) typ) = (Checked eqs ars (Pair subst (SubstHoles subst typ)))
@@ -1377,10 +1434,10 @@ FuncEmpty = (Func (Var (Name.Make "?")) (Var (Name.Make "?")) End)
     (Checked eqs ars HTyp)
       
 // (Check File Term HTerm Ctx) : (Result Subst)
-(Check file term type ctx) = (CheckUnify file (CheckGo file term type ctx Nil Nil))
+(Check file term type ctx) = (CheckUnify file 0 (CheckGo file term type ctx Nil Nil))
 
-  (CheckUnify file (Errored err))         = (Errored err)
-  (CheckUnify file (Checked eqs ars typ)) = (Unify file eqs ars Empty)
+  (CheckUnify file capt (Errored err))         = (Errored err)
+  (CheckUnify file capt (Checked eqs ars typ)) = (Unify file capt eqs ars Empty)
 
   // (CheckGo File Term HTerm Ctx (List Equation)) : (Result Unit)
 
@@ -1403,83 +1460,95 @@ FuncEmpty = (Func (Var (Name.Make "?")) (Var (Name.Make "?")) End)
 // In a future, we should revisit this, and decide what unification and
 // resolution algorithms we want to have on the language.
 // (Unify equations:(List (Pair HTerm HTerm)) substitutions:(Map HTerm)) : (Result (Map HTerm))
-(Unify file eqs ars subst) = (UnifyGo file eqs ars subst Nil)
-  (UnifyGo file Nil ars subst Nil) =
+(Unify file capt eqs ars subst) = (UnifyGo file capt eqs ars subst Nil)
+  (UnifyGo file capt Nil ars subst Nil) =
     (Checked Nil ars subst)
-  (UnifyGo file Nil ars subst errs) =
+  (UnifyGo file capt Nil ars subst errs) =
     (Errored (StrJoin (ListMap errs λx(x subst)) NewLine))
-  (UnifyGo file (Cons (Equation a b dep ctx) eqs) ars subst errs) =
-    (PairGet (Equal a b dep subst) λsubst λeq
-    (UnifyTest file eq a b ctx eqs ars subst errs))
-  (UnifyTest file 0 a b ctx eqs ars subst errs) =
+  (UnifyGo file capt (Cons (Equation a b dep ctx) eqs) ars subst errs) =
+    (TripGet (Equal a b capt dep subst ars) λsubst λars λeq
+    (UnifyTest file capt eq a b ctx eqs ars subst errs))
+
+  (UnifyTest file capt 0 a b ctx eqs ars subst errs) =
     let err = λsubst (StrFlatten [
       "Type mismatch." NewLine
       "- Expected: " (Show (Low (SubstHoles subst a)) file) NewLine
       "- Detected: " (Show (Low (SubstHoles subst b)) file) NewLine
       (ShowContext (ListMap ctx λp(PairMutSnd p λx(Low (SubstHoles subst x)))) file)
     ])
-    (UnifyGo file eqs ars subst (Cons err errs))
-  (UnifyTest file 1 a b ctx eqs ars subst errs) =
-    (UnifyGo file eqs ars subst errs)
+    (UnifyGo file capt eqs ars subst (Cons err errs))
+  (UnifyTest file capt 1 a b ctx eqs ars subst errs) =
+    (UnifyGo file capt eqs ars subst errs)
 
 // FIXME: this will loop if we subst `a_hash <- (HMet a_hash)`, since the Equal
 // rewrite rule will be called repeatedly. I don't have the time to reason about
 // this right now, so I'll leave this to a future.
 // (Equal HTerm HTerm U32) : (Trip Subst (List Argument) Bool)
-(Equal (HLev a_name a_numb) (HLev b_name b_numb) depth subst) =
-  (Pair subst (== a_numb b_numb))
-// shouldnt happen for now
-//(Equal (HVar a_name) (HVar b_name) depth subst) =
-  //(Pair subst (Name.Equal a_name b_name))
-(Equal HTyp HTyp depth subst) =
-  (Pair subst 1)
-(Equal (HAll a_type a_body) (HAll b_type b_body) depth subst) =
-  (PairGet (Equal a_type b_type depth subst) λsubst λtype_eq
-  (PairGet (Equal (a_body (HLev "" depth)) (b_body (HLev "" depth)) (+ depth 1) subst) λsubst λbody_eq
-  (Pair subst (& type_eq body_eq))))
-(Equal (HLam a_body) (HLam b_body) depth subst) =
-  (PairGet (Equal (a_body (HLev "" depth)) (b_body (HLev "" depth)) (+ depth 1) subst) λsubst λbody_eq
-  (Pair subst body_eq))
-(Equal (HApp a_func a_argm) (HApp b_func b_argm) depth subst) =
-  (PairGet (Equal a_func b_func depth subst) λsubst λfunc_eq
-  (PairGet (Equal a_argm b_argm depth subst) λsubst λargm_eq
-  (Pair subst (& func_eq argm_eq))))
-(Equal (HCt0 a_ctid) (HCt0 b_ctid) depth subst) =
-  (Pair subst (== a_ctid b_ctid))
-(Equal (HCt1 a_ctid a_a) (HCt1 b_ctid b_a) depth subst) =
-  (PairGet (Equal a_a b_a depth subst) λsubst λa_eq
-  (Pair subst (& (== a_ctid b_ctid) a_eq)))
-(Equal (HCt2 a_ctid a_a a_b) (HCt2 b_ctid b_a b_b) depth subst) =
-  (PairGet (Equal a_a b_a depth subst) λsubst λa_eq
-  (PairGet (Equal a_b b_b depth subst) λsubst λb_eq
-  (Pair subst (& (== a_ctid b_ctid) (& a_eq b_eq)))))
-(Equal (HCt3 a_ctid a_a a_b a_c) (HCt3 b_ctid b_a b_b b_c) depth subst) =
-  (PairGet (Equal a_a b_a depth subst) λsubst λa_eq
-  (PairGet (Equal a_b b_b depth subst) λsubst λb_eq
-  (PairGet (Equal a_c b_c depth subst) λsubst λc_eq
-  (Pair subst (& (== a_ctid b_ctid) (& a_eq (& b_eq c_eq)))))))
-(Equal (HCt4 a_ctid a_a a_b a_c a_d) (HCt4 b_ctid b_a b_b b_c b_d) depth subst) =
-  (PairGet (Equal a_a b_a depth subst) λsubst λa_eq
-  (PairGet (Equal a_b b_b depth subst) λsubst λb_eq
-  (PairGet (Equal a_c b_c depth subst) λsubst λc_eq
-  (PairGet (Equal a_d b_d depth subst) λsubst λd_eq
-  (Pair subst (& (== a_ctid b_ctid) (& a_eq (& b_eq (& c_eq d_eq)))))))))
+(Equal (HLev a_name a_numb) (HLev b_name b_numb) capt depth subst ars) =
+  (Trip subst ars (== a_numb b_numb))
+(Equal HTyp HTyp capt depth subst ars) =
+  (Trip subst ars 1)
+(Equal (HAll a_type a_body) (HAll b_type b_body) capt depth subst ars) =
+  (TripGet (Equal a_type b_type capt depth subst ars) λsubst λars λtype_eq
+  (TripGet (Equal (a_body (HLev "" depth)) (b_body (HLev "" depth)) capt (+ depth 1) subst ars) λsubst λars λbody_eq
+  (Trip subst ars (& type_eq body_eq))))
+(Equal (HLam a_body) (HLam b_body) capt depth subst ars) =
+  (TripGet (Equal (a_body (HLev "" depth)) (b_body (HLev "" depth)) capt (+ depth 1) subst ars) λsubst λars λbody_eq
+  (Trip subst ars body_eq))
+(Equal (HApp a_func a_argm) (HApp b_func b_argm) capt depth subst ars) =
+  (TripGet (Equal a_func b_func capt depth subst ars) λsubst λars λfunc_eq
+  (TripGet (Equal a_argm b_argm capt depth subst ars) λsubst λars λargm_eq
+  (Trip subst ars (& func_eq argm_eq))))
+(Equal (HCt0 a_ctid) (HCt0 b_ctid) capt depth subst ars) =
+  (Trip subst ars (== a_ctid b_ctid))
+(Equal (HCt1 a_ctid a_a) (HCt1 b_ctid b_a) capt depth subst ars) =
+  (TripGet (Equal a_a b_a capt depth subst ars) λsubst λars λa_eq
+  (Trip subst ars (& (== a_ctid b_ctid) a_eq)))
+(Equal (HCt2 a_ctid a_a a_b) (HCt2 b_ctid b_a b_b) capt depth subst ars) =
+  (TripGet (Equal a_a b_a capt depth subst ars) λsubst λars λa_eq
+  (TripGet (Equal a_b b_b capt depth subst ars) λsubst λars λb_eq
+  (Trip subst ars (& (== a_ctid b_ctid) (& a_eq b_eq)))))
+(Equal (HCt3 a_ctid a_a a_b a_c) (HCt3 b_ctid b_a b_b b_c) capt depth subst ars) =
+  (TripGet (Equal a_a b_a capt depth subst ars) λsubst λars λa_eq
+  (TripGet (Equal a_b b_b capt depth subst ars) λsubst λars λb_eq
+  (TripGet (Equal a_c b_c capt depth subst ars) λsubst λars λc_eq
+  (Trip subst ars (& (== a_ctid b_ctid) (& a_eq (& b_eq c_eq)))))))
+(Equal (HCt4 a_ctid a_a a_b a_c a_d) (HCt4 b_ctid b_a b_b b_c b_d) capt depth subst ars) =
+  (TripGet (Equal a_a b_a capt depth subst ars) λsubst λars λa_eq
+  (TripGet (Equal a_b b_b capt depth subst ars) λsubst λars λb_eq
+  (TripGet (Equal a_c b_c capt depth subst ars) λsubst λars λc_eq
+  (TripGet (Equal a_d b_d capt depth subst ars) λsubst λars λd_eq
+  (Trip subst ars (& (== a_ctid b_ctid) (& a_eq (& b_eq (& c_eq d_eq)))))))))
 // FIXME: here it should generate equalities!
 // a_name : (Var a_name) == b ???? makes sense to me
-//(Equal (HUse a_name a_numb) b depth subst) =
-  //(Pair subst 1)
-//(Equal a (HUse b_name b_numb) depth subst) =
-  //(Pair subst 1)
-(Equal (HMet a_hash) (HMet b_hash) depth subst) =
-  (Pair subst 1)
-(Equal (HMet a_hash) b depth subst) = (PairGet (Get subst a_hash) λsubst λgot_a (Equal.Got.0 a_hash got_a b depth subst))
-  (Equal.Got.0 a_hash None     b depth subst) = (Pair (Set subst a_hash b) 1)
-  (Equal.Got.0 a_hash (Some a) b depth subst) = (Equal a b depth subst)
-(Equal a (HMet b_hash) depth subst) = (PairGet (Get subst b_hash) λsubst λgot_b (Equal.Got.1 b_hash a got_b depth subst))
-  (Equal.Got.1 b_hash a None     depth subst) = (Pair (Set subst b_hash a) 1)
-  (Equal.Got.1 b_hash a (Some b) depth subst) = (Equal a b depth subst)
-(Equal a b depth subst) =
-  (Pair subst 0)
+(Equal (HVar a_name) (HVar b_name) 0 depth subst ars) =
+  (Trip subst ars (Name.Equal a_name b_name))
+(Equal (HVar a_name) b 1 depth subst ars) =
+  let anm = (Name.GetString a_name)
+  let bnm = (Show (Low b) (File.Make []))
+  let var = (HVar (Name.Make (StrFlatten [anm " == " bnm])))
+  let ars = (Cons (Pair (Name.Make "E") var) ars)
+  (Trip subst ars 1)
+(Equal a (HVar b_name) 1 depth subst ars) =
+  let anm = (Show (Low a) (File.Make []))
+  let bnm = (Name.GetString b_name)
+  let var = (HVar (Name.Make (StrFlatten [anm " == " bnm])))
+  let ars = (Cons (Pair (Name.Make "E") var) ars)
+  (Trip subst ars 1)
+//(Equal (HUse a_name a_numb) b capt depth subst ars) =
+  //(Trip subst ars 1)
+//(Equal a (HUse b_name b_numb) capt depth subst ars) =
+  //(Trip subst ars 1)
+(Equal (HMet a_hash) (HMet b_hash) capt depth subst ars) =
+  (Trip subst ars 1)
+(Equal (HMet a_hash) b capt depth subst ars) = (TripGet (Get subst a_hash) λsubst λars λgot_a (Equal.Got.0 a_hash got_a b capt depth subst ars))
+  (Equal.Got.0 a_hash None     b capt depth subst ars) = (Trip (Set subst a_hash b) ars 1)
+  (Equal.Got.0 a_hash (Some a) b capt depth subst ars) = (Equal a b capt depth subst ars)
+(Equal a (HMet b_hash) capt depth subst ars) = (TripGet (Get subst b_hash) λsubst λars λgot_b (Equal.Got.1 b_hash a got_b capt depth subst ars))
+  (Equal.Got.1 b_hash a None     capt depth subst ars) = (Trip (Set subst b_hash a) ars 1)
+  (Equal.Got.1 b_hash a (Some b) capt depth subst ars) = (Equal a b capt depth subst ars)
+(Equal a b capt depth subst ars) =
+  (Trip subst ars 0)
 
 // (SubstHoles Subst Term) : Term
 (SubstHoles subst (HVar name))         = (HVar name)
@@ -1568,26 +1637,24 @@ FuncEmpty = (Func (Var (Name.Make "?")) (Var (Name.Make "?")) End)
 (Verify.Rule file (Ct2 typ.ctid a.typ b.typ) rty (Ct2 val.ctid a.val b.val) rhs) =
   (Arg.Get a.typ λa.typ.name λa.typ.expr
   (Arg.Get b.typ λb.typ.name λb.typ.expr
-  (CheckUnify file
-
+  (CheckUnify file 0
     let ctx = Nil
     let eqs = Nil
     let ars = Nil
 
     let va0 = (High file a.val Nil) // <- as FVs aqui devem virar Levs, e o depth do check deve ser aumentado
-                                    //    TODO WIP sendo feito com a alteração no HighGo
     let va1 = (High file b.val Nil)
 
     let sub = Nil
     let aty = (High file a.typ.expr Nil)
 
-    (Chain (CheckGo file a.val aty Nil eqs ars) λeqs λars λok
+    (Chain (CheckUnify file 1 (CheckGo file a.val aty Nil eqs ars)) λeqs λars λok
 
     let sub = Nil
     let sub = (CloneFor b.typ.expr a.typ.name va0 sub)
     let bty = (High file b.typ.expr sub)
 
-    (Chain (CheckGo file b.val bty Nil eqs ars) λeqs λars λok
+    (Chain (CheckUnify file 1 (CheckGo file b.val bty Nil eqs ars)) λeqs λars λok
 
     let sub = Nil
     let sub = (CloneFor rty a.typ.name va0 sub)
@@ -1628,13 +1695,57 @@ FuncEmpty = (Func (Var (Name.Make "?")) (Var (Name.Make "?")) End)
   let ctx = (Arg.Get t.c λname λexpr (Cons (Pair name (High file expr Nil)) ctx))
   (Check file rhs (High file rty Nil) ctx)
 
-(Verify.Rule file (Ct4 t.ctid t.a t.b t.c t.d) rty lhs rhs) =
-  let ctx = Nil
-  let ctx = (Arg.Get t.a λname λexpr (Cons (Pair name (High file expr Nil)) ctx))
-  let ctx = (Arg.Get t.b λname λexpr (Cons (Pair name (High file expr Nil)) ctx))
-  let ctx = (Arg.Get t.c λname λexpr (Cons (Pair name (High file expr Nil)) ctx))
-  let ctx = (Arg.Get t.d λname λexpr (Cons (Pair name (High file expr Nil)) ctx))
-  (Check file rhs (High file rty Nil) ctx)
+// FIXME: remove duplicated code by generalizing Verify.Rule to lists
+(Verify.Rule file (Ct4 typ.ctid a.typ b.typ c.typ d.typ) r.typ (Ct4 val.ctid a.val b.val c.val d.val) rhs) =
+  (Arg.Get a.typ λa.typ.name λa.typ.expr
+  (Arg.Get b.typ λb.typ.name λb.typ.expr
+  (Arg.Get c.typ λc.typ.name λc.typ.expr
+  (Arg.Get d.typ λd.typ.name λd.typ.expr
+  (CheckUnify file 0
+    let ctx = Nil
+    let eqs = Nil
+    let ars = Nil
+
+    let va0 = (High file a.val Nil)
+    let va1 = (High file b.val Nil)
+    let va2 = (High file c.val Nil)
+    let va3 = (High file d.val Nil)
+
+    let sub = Nil
+    let aty = (High file a.typ.expr Nil)
+
+    (Chain (CheckUnify file 1 (CheckGo file a.val aty Nil eqs ars)) λeqs λars λok
+
+    let sub = Nil
+    let sub = (CloneFor b.typ.expr a.typ.name va0 sub)
+    let bty = (High file b.typ.expr sub)
+
+    (Chain (CheckUnify file 1 (CheckGo file b.val bty Nil eqs ars)) λeqs λars λok
+
+    let sub = Nil
+    let sub = (CloneFor c.typ.expr a.typ.name va0 sub)
+    let sub = (CloneFor c.typ.expr b.typ.name va1 sub)
+    let cty = (High file c.typ.expr sub)
+
+    (Chain (CheckUnify file 1 (CheckGo file c.val cty Nil eqs ars)) λeqs λars λok
+
+    let sub = Nil
+    let sub = (CloneFor d.typ.expr a.typ.name va0 sub)
+    let sub = (CloneFor d.typ.expr b.typ.name va1 sub)
+    let sub = (CloneFor d.typ.expr c.typ.name va2 sub)
+    let dty = (High file d.typ.expr sub)
+
+    (Chain (CheckUnify file 1 (CheckGo file d.val dty Nil eqs ars)) λeqs λars λok
+
+    let sub = Nil
+    let sub = (CloneFor r.typ a.typ.name va0 sub)
+    let sub = (CloneFor r.typ b.typ.name va1 sub)
+    let sub = (CloneFor r.typ c.typ.name va2 sub)
+    let sub = (CloneFor r.typ d.typ.name va3 sub)
+    let rty = (High file r.typ sub)
+
+    let ctx = ars
+    (CheckGo file rhs rty ctx eqs ars))))))))))
 
 (Verify.Rule file lty rty b rhs) =
   "Incorrect arity."
@@ -1645,87 +1756,32 @@ FuncEmpty = (Func (Var (Name.Make "?")) (Var (Name.Make "?")) End)
 (Main n) =
   let code = "
     (Bool)  : Type
-    (True)  : (Bool)
-    (False) : (Bool)
+      (True)  : (Bool)
+      (False) : (Bool)
+
+    (List t:Type) : Type
+      (Nil t:Type) : (List t)
+      (Cons t:Type x:t xs:(List t)) : (List t)
 
     (Nat) : Type
     (Zero) : (Nat)
 
-    (Id t:Type x:t) : t
-    (Id t      x  ) = x
+    (Head t:Type x:(List t)  ) : t
+    (Head t      (Cons t x l)) = x
+
+    (Equal t:Type a:t b:t) : Type
+    (Refl  t:Type a:t)     : (Equal t a a)
+
+    (Sym t:Type a:t b:t e:(Equal t a b)) : (Equal t b a)
+    (Sym t      a   b   (Refl u x))      = Type
+    :)
+
+
+
   "
-    //  /\ essa Var deve virar um Lev quando convertida pelo High ???
-    //     talvez todas devem?
 
   let file = (ReadFile code)
   //(ShowFile file)
   (Verify.File file)
-
-
-
-    //(Nat)          : Type
-    //(Zero)         : (Nat)
-    //(Succ n:(Nat)) : (Nat)
-
-    //(Not x:(Bool)) : (Bool)
-    //(Not (True))   = (False)
-    //(Not (False))  = (True)
-
-
-    //(List t:Type) : Type
-    //(Nil t:Type) : (List t)
-    //(Cons t:Type x:t xs:(List t)) : (List t)
-
-    //(P x:(List Bool)) : Type
-
-    //(Elim t:(P (True)) b:(Bool)) : (P b)
-    //(Elim t            (True)  ) = t
-
-    //(Head t:Type x:(List t)) : t
-    //(Head t (Cons k x l))    = l
-
-    //(Main) : (List (Bool))
-    //(Main) = (Cons _ (False) (Cons _ (True) (Nil _)))
-
-
-// bad (x : Bool) : Bool
-// bad Zero       = ?
-//      /\
-//      Nat
-//      Bool
-// 
-// Goal:
-// - Bool
-// Context:
-// - e0 : Nat == Bool ????
-//
-// head (t : Set) (x : List t)  : t
-// head t         (Cons u x xs) = x
-//                      /\
-//                   (List u) -> u == t
-//                   (List t)
-//       nunca dar erro, apenas criar igualdades?
-//       todo type mismatch se converte em uma igualdade?
-//       Use deveria ser = a qualquer coisa?
-//       Quando:
-//       - (Check ... (Use "u") t): gera um `u : t`
-//       - (Equal ... (Use "u") b): gera um `e : u == b`
-//       !
-// 
-// Type mismatch.
-// - Expected: (List t)
-// - Detected: (List k)
-//  
-// Type mismatch.
-// - Expected: t
-// - Detected: k
-// Context:
-// - t : Type
-// - k : Type
-// - x : k
-// - l : (List k)
-
-
-
 
 
