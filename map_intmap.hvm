@@ -1,0 +1,51 @@
+// (Get (Tree a) U32) : (Pair Tree (Maybe a))
+(Get tree key) = (GetGo 32 tree key (λx x))
+  (GetGo n Empty            key self) = (Pair (self Empty) None)
+  (GetGo n (Entry val)      key self) = (Pair (self (Entry val)) (Some val))
+  (GetGo n (Nodes lft rgt)  key self) = (GetGoNodes (& (>> key (- n 1)) 1) (- n 1) key lft rgt self)
+    (GetGoNodes 0 n key lft rgt self) = (GetGo n lft key λx(self (Nodes x rgt)))
+    (GetGoNodes 1 n key lft rgt self) = (GetGo n rgt key λx(self (Nodes lft x)))
+
+(Del tree key) = (DelGo 32 tree key)
+  (DelGo n (Nodes lft rgt) key)  = (DelGoNodes (& (>> key (- n 1)) 1) (- n 1) lft rgt key)
+    (DelGoNodes 0 n lft rgt key) = (Nodes (DelGo n lft key) rgt)
+    (DelGoNodes 1 n lft rgt key) = (Nodes lft (DelGo n rgt key))
+  (DelGo n tree key)             = Empty
+
+(Set tree key val) = (SetGo 32 tree key val)
+  (SetGo 0 tree             key val) = (Entry val)
+  (SetGo n Empty            key val) = (SetGoEmpty (& (>> key (- n 1)) 1) (- n 1) key val)
+    (SetGoEmpty 0 n key         val) = (Nodes (SetGo n Empty key val) Empty)
+    (SetGoEmpty 1 n key         val) = (Nodes Empty (SetGo n Empty key val))
+  (SetGo n (Nodes lft rgt)  key val) = (SetGoNodes (& (>> key (- n 1)) 1) (- n 1) key lft rgt val)
+    (SetGoNodes 0 n key lft rgt val) = (Nodes (SetGo n lft key val) rgt)
+    (SetGoNodes 1 n key lft rgt val) = (Nodes lft (SetGo n rgt key val))
+
+(Mut tree key fun) = (MutGo 32 tree key fun)
+  (MutGo 0 (Entry x)        key fun) = (Entry (fun x))
+  (MutGo 0 tree             key fun) = tree
+  (MutGo n Empty            key fun) = (MutGoEmpty (& (>> key (- n 1)) 1) (- n 1) key fun)
+    (MutGoEmpty 0 n key         fun) = (Nodes (MutGo n Empty key fun) Empty)
+    (MutGoEmpty 1 n key         fun) = (Nodes Empty (MutGo n Empty key fun))
+  (MutGo n (Nodes lft rgt)  key fun) = (MutGoNodes (& (>> key (- n 1)) 1) (- n 1) key lft rgt fun)
+    (MutGoNodes 0 n key lft rgt fun) = (Nodes (MutGo n lft key fun) rgt)
+    (MutGoNodes 1 n key lft rgt fun) = (Nodes lft (MutGo n rgt key fun))
+
+(ListToMap list) = (ListToMapGo list Empty)
+  (ListToMapGo (Cons (Pair key val) xs) map) = (ListToMapGo xs (Set map key val))
+  (ListToMapGo Nil                      map) = map
+
+(MapToList val) = ((MapToListGo val 0) Nil)
+  (MapToListGo Empty           key) = λx x
+  (MapToListGo (Entry val)     key) = λx (Cons (Pair key val) x)
+  (MapToListGo (Nodes lft rgt) key) = λx ((MapToListGo lft (* key 2)) ((MapToListGo rgt (+ (* key 2) 1)) x))
+
+// (Main a b c d e f m) = 
+//     let map = Empty
+//     let map = (Set map a A)
+//     let map = (Set map b B)
+//     let map = (Set map c C)
+//     let map = (Set map d D)
+//     let map = (Set map e E)
+//     let map = (Set map f F)
+//     (Get map m)

@@ -1,0 +1,71 @@
+//  Tree
+//    Empty
+//    Leaf
+//      key 
+//      value
+//    Branch
+//      prefix
+//      branchingbit
+//      left
+//      right
+
+
+// Sets a value into a tree
+// Set - tree key value 
+  (Set Empty key value) = (Leaf key value)
+  (Set (Leaf j y) key value ) = (SetAux0 (== j key) value y j key (Leaf j y))
+    (SetAux0 1 x y j k l) = (Leaf k x)
+    (SetAux0 0 x y j k l) = (Join k (Leaf k x) j l)
+  (Set (Branch p m t0 t1) key value) = (SetAux1 (MatchPrefix key p m) value p m t0 t1 key)
+    (SetAux1 1 x p m t0 t1 k) = (SetAux2 (ZeroBit k m) p m t0 t1 k x)
+      (SetAux2 1 p m t0 t1 k x) = (Branch p m (Set t0 k x) t1)
+      (SetAux2 0 p m t0 t1 k x) = (Branch p m t0 (Set t1 k x))
+    (SetAux1 0 x p m t0 t1 k) = (Join k (Leaf k x) p (Branch p m t0 t1))
+
+// Merges 2 trees in which prefixes does not contain each other
+// Join - prefix0 tree0 prefix1 tree1
+  (Join p0 t0 p1 t1) = (JoinAux0 (BranchingBit p0 p1) p0 t0 t1)
+    (JoinAux0 m p0 t0 t1) = (JoinAux1 (ZeroBit m p0) m p0 t0 t1)
+      (JoinAux1 1 m p0 t0 t1) = (Branch (Mask p0 m) m t0 t1)
+      (JoinAux1 0 m p0 t0 t1) = (Branch (Mask p0 m) m t1 t0)
+
+// Get a value from a tree
+// Get - tree key
+  (Get Empty key) = None
+  (Get (Leaf j x) key) = (GetAux1 (== j key) x)
+    (GetAux1 1 x) = (Some x)
+    (GetAux1 0 x) = None
+  (Get (Branch p m t0 t1) key) = (GetAux0 (MatchPrefix key p m) key m t0 t1)
+    (GetAux0 0 k m t0 t1) = None
+    (GetAux0 1 k m t0 t1) = (GetAux2 (ZeroBit k m) k t0 t1)
+    (GetAux2 1 k t0 t1) = (Get k t0)
+    (GetAux2 0 k t0 t1) = (Get k t1)
+
+// Checks if the Bitwise And of x and y is 0
+  (ZeroBit x y) = (== (& x y) 0)
+
+  (MatchPrefix k p m) = (== (Mask k m) p)
+  (Mask k m) = (& k (- m 1))
+
+// not used
+(FBranch p m t Empty) = t
+(FBranch p m Empty t) = t
+(FBranch p m t0 t1) = (Branch p m t0 t1)
+
+
+// Finds the bit where p0 and p1 are different
+  (BranchingBit p0 p1) = (LowestBit (^ p0 p1))
+  (LowestBit x) = (LowestBitAux0 (% x 2) x)
+    (LowestBitAux0 0 x) = (* 2 (LowestBit (/ x 2))
+    (LowestBitAux0 1 x) = 1
+
+  // (Main a b c d e f m) = 
+  //   let map = Empty
+  //   let map = (Set map a A)
+  //   let map = (Set map b B)
+  //   let map = (Set map c C)
+  //   let map = (Set map d D)
+  //   let map = (Set map e E)
+  //   let map = (Set map f F)
+  //   (Get map m)
+  // (Main n) = (Get n (Branch 0 1 (Branch 2 4 (Leaf 2 (C)) (Leaf 1222 (E))) (Branch 1 2 (Leaf 17 (B)) (Branch 59 64 (Leaf 187 (D)) (Leaf 123 (A))))))

@@ -1,0 +1,25 @@
+
+// Sets a value into a list
+// Set - list key value 
+// ListMap<A> = List<Pair<U32,A>>
+  (Set Empty key value) = (Cons key value Empty)
+  (Set (Cons k v l) key value) = (SetAux0 (== k key) k v l key value)
+    (SetAux0 1 k v l key value) = (Cons key value l)
+    (SetAux0 0 k v l key value) = (Cons k v (Set l key value))
+
+// Get a value from a list
+// Get - list key
+  (Get Empty key) = None
+  (Get (Cons k v l) key) = (GetAux0 (== k key) k v l key)
+    (GetAux0 1 k v l key) = (Some key) 
+    (GetAux0 0 k v l key) = (Get l key)
+
+// (Main a b c d e f m) = 
+//     let map = Empty
+//     let map = (Set map a A)
+//     let map = (Set map b B)
+//     let map = (Set map c C)
+//     let map = (Set map d D)
+//     let map = (Set map e E)
+//     let map = (Set map f F)
+//     (Get map m)
