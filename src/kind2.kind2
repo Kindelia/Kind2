@@ -521,7 +521,6 @@ Op : Type
  Op.NEQ : Op
 
 Term : Type
-  (Term.def name:Name expr:Term body:Term)           : Term
   (Term.let name:Name expr:Term body:Term)           : Term
   (Term.cts name:Name list:(List Term))              : Term
   (Term.o32 op:Op val0:Term val1:Term)               : Term
@@ -753,3 +752,33 @@ Term : Type
            (List.nil (Parser (Maybe ∀(x:Term)Term))))
 
   (Parser.grammar ∀(x:Term)Term xs)
+
+
+(Term.def Name Term Term) : Term
+(Term.def nm val (Term.var name))                = (U32.if Term (Name.equal name nm) val (Term.var name))
+(Term.def nm val (Term.hol hash))                = (Term.hol hash)
+(Term.def nm val Term.typ)                       = Term.typ
+(Term.def nm val Term.u32)                       = Term.u32
+(Term.def nm val (Term.n32 numb))                = (Term.n32 numb)
+(Term.def nm val (Term.o32 oper val0 val1))      = (Term.o32 oper (Term.def nm val val0) (Term.def nm val val1))
+(Term.def nm val (Term.gol name))                = (Term.gol name)
+(Term.def nm val (Term.ann xval xtyp))           = (Term.ann (Term.def nm val xval) (Term.def nm val xtyp))
+(Term.def nm val (Term.let name expr body))      = (Term.let name (Term.def nm val expr) (Term.def.body nm val name body))
+(Term.def nm val (Term.all name type body))      = (Term.all name (Term.def nm val type) (Term.def.body nm val name body))
+(Term.def nm val (Term.lam name body))           = (Term.lam name (Term.def.body nm val name body))
+(Term.def nm val (Term.app func argm))           = (Term.app (Term.def nm val func) (Term.def nm val argm))
+(Term.def nm val (Term.cts ctid args))           = (Term.cts ctid (Term.def.many nm val args))
+(Term.def nm val (Term.eql val0 val1))           = (Term.eql (Term.def nm val val0) (Term.def nm val val1))
+(Term.def nm val (Term.rfl expr))                = (Term.rfl (Term.def nm val expr))
+(Term.def nm val (Term.rwt name witn goal expr)) = (Term.rwt name (Term.def nm val witn) (Term.def.body nm val name goal) (Term.def nm val expr))
+
+(Term.def.many nm:Name val:Term list:(List Term)) : (List Term)
+  (Term.def.many nm val (List.nil Term))      = (List.nil Term)
+  (Term.def.many nm val (List.cons Term x xs)) = (List.cons Term (Term.def nm val x) (Term.def.many nm val xs))
+
+(Term.def.body nm:Name val:Term name:Name body:Term) : Term
+  (Term.def.body nm val name body) = (Term.def.body.go (Name.equal nm name) nm val body)
+
+(Term.def.body.go i:U32 nm:Name val:Term body:Term) : Term
+  (Term.def.body.go 0 nm val body) = (Term.def nm val body)
+  (Term.def.body.go 1 nm val body) = body
