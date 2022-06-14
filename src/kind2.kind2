@@ -753,7 +753,6 @@ Term : Type
 
   (Parser.grammar ∀(x:Term)Term xs)
 
-
 (Term.def Name Term Term) : Term
 (Term.def nm val (Term.var name))                = (U32.if Term (Name.equal name nm) val (Term.var name))
 (Term.def nm val (Term.hol hash))                = (Term.hol hash)
@@ -782,3 +781,19 @@ Term : Type
 (Term.def.body.go i:U32 nm:Name val:Term body:Term) : Term
   (Term.def.body.go 0 nm val body) = (Term.def nm val body)
   (Term.def.body.go 1 nm val body) = body
+  
+// Utils
+// =====
+
+(Utils.get_id term:Term) : Name
+  (Utils.get_id (Term.cts ctid args)) = ctid
+  (Utils.get_id term)                 = (Name.make "?")
+
+(Utils.var_get_name term:Term) : Name
+  (Utils.var_get_name (Term.var name)) = name
+  (Utils.var_get_name x) = (Name.make "_")
+
+(Utils.arg_get term:Term cont:∀(x:Name)∀(y:Term)Term) : Term
+  (Utils.arg_get (Term.ann var expr) cont) = (cont (Utils.var_get_name var) expr)
+  (Utils.arg_get term                cont) = (cont (Name.make "_") term)
+
