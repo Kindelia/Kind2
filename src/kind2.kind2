@@ -721,12 +721,11 @@ Term : Type
 // (Parser.parse_str_make (List.cons x xs) = (Term.cts (Name.make String.cons) (List.cons (N32 x) (Parser.parse_str_make xs))))
 // (Parser.parse_str_make List.nil) = (Term.cts (Name.make String.nil) List.nil)
 
-// FIXME: or better INFER ME
 (Parser.parse_term) : (Parser Term)
-//   (Parser.parse_term) =
-//     (Parser.bind Term Term ((Parser.parse_term.ini) λini
-//     (Parser.bind ∀(x:Term)Term Term ((Parser.parse_term.end) λend
-//     (Parser.done Term (end ini))))))
+(Parser.parse_term) =
+  (Parser.bind Term          Term (Parser.parse_term.ini) λini
+  (Parser.bind ∀(x:Term)Term Term (Parser.parse_term.end) λend
+  (Parser.done Term (end ini))))
 
 (Parser.parse_term.ini) : (Parser Term)
 (Parser.parse_term.ini) =
@@ -753,3 +752,37 @@ Term : Type
            (List.nil (Parser (Maybe ∀(x:Term)Term))))
 
   (Parser.grammar ∀(x:Term)Term xs)
+
+Decl : Type
+  (Decl.def_type lhs:Term rhs:Term) : Decl
+  (Decl.def_rule lhs:Term rhs:Term) : Decl
+
+KType : Type
+  (KType.new lhs:Term rhs:Term) : KType
+
+Rule : Type 
+  (Rule.new lhs:Term rhs:Term) : Rule
+
+Func : Type 
+  (Func.new type:(Pair Term Term) rules:(List Rule)) : Func
+
+File : Type 
+  (File.new funcs:(Map Func)) : File
+
+(Parser.parse_decl) : (Parser Decl)
+(Parser.parse_decl) =
+  (Parser.bind Term Decl (Parser.parse_term) λlhs
+  (Parser.bind Bool Decl (Parser.match_text ":") λtyp
+  (Parser.parse_decl_rhs typ lhs)))
+
+(Parser.parse_decl_rhs typ:Bool lhs:Term) : (Parser Decl)
+  (Parser.parse_decl_rhs Bool.true lhs) = (Parser.bind Term Decl (Parser.parse_term) λrhs (Parser.done Decl (Decl.def_type lhs rhs)))
+  (Parser.parse_decl_rhs Bool.false lhs) = 
+    (Parser.bind Unit Decl (Parser.parse_text "=") λskp
+    (Parser.bind Term Decl (Parser.parse_term) λrhs
+    (Parser.done Decl (Decl.def_rule lhs rhs))))
+
+(Parser.parse_decls) : (Parser (List Decl))
+  (Parser.parse_decls) = (Parser.parse_until Decl λcode((Parser.parse_end) (Parser.skipper code)) Parser.parse_decl)
+
+
