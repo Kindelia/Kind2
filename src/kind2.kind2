@@ -1034,28 +1034,29 @@ File : Type
 (Newline) : String
 (Newline) = (String.cons 10 String.nil)
 
-(Context.show ctx:(List _) file:File) : ∀(x:String)String
-  // (Context.show (List.nil _) file) = ""
-  // (Context.show ctx file) =
-  //   let ctx = (List.reverse _ ctx)
-  //   let build = λz
-  //     ((String.show.go "Context:")
-  //     ((String.show.go Newline)
-  //     ((Context.show.go ctx file)
-  //       z)))
-  //   (build "")
+(Context.show ctx:(List (Pair Name Term)) file:File) : String
+  (Context.show (List.nil _) file) = ""
+  (Context.show ctx file) =
+    let new_ctx = (List.reverse (Pair Name Term) ctx)
+    ((Context.show.build new_ctx file) "")
 
-// TODO: infer
-(Context.show.go ctx:(List (Pair Name Term)) file:File) : ∀(x:String)String
+(Context.show.build ctx:(List (Pair Name Term)) file:File) : ∀(z:String)String
+  (Context.show.build ctx file) = λz
+    ((String.show.go "Context:")
+    ((String.show.go Newline)
+    ((Context.show.go ctx file)
+      z)))
+
+(Context.show.go ctx:(List (Pair Name Term)) file:File) : ∀(z:String)String
   (Context.show.go (List.nil _) file) = λz(z)
-  // (Context.show.go (List.cons _ (Pair name type) rest) file) =
-  //   λz((String.show.go "- ")
-  //     ((String.show.go (Name.get_string name))
-  //     ((String.show.go " : ") 
-  //     ((Term.show.go type file)
-  //     ((String.show.go Newline)
-  //     ((Context.show.go rest file)
-  //     z))))))
+  (Context.show.go (List.cons (Pair Name Term) (Pair.new Name Term name type) rest) file) =
+    λz((String.show.go "- ")
+      ((String.show.go (Name.get_string name))
+      ((String.show.go " : ") 
+      ((Term.show.go type file)
+      ((String.show.go Newline)
+      ((Context.show.go rest file)
+      z))))))
 
 
 (File.show file:File) : String
