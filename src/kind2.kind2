@@ -542,8 +542,8 @@ Term : Type
   (Term.gol name:Name)                               : Term
   (Term.typ)                                         : Term
   (Term.ann expr:Term type:Term)                     : Term
-  (Term.hol hash:Name)                               : Term     
-  (Term.use name:Name numb:U32)                     : Term
+  (Term.hol hash:U32)                                : Term     
+  (Term.use name:Name numb:U32)                      : Term
   (Term.eql val0:Term val1:Term)                     : Term
   (Term.rwt name:Name witn:Term goal:Term expr:Term) : Term
 
@@ -633,7 +633,7 @@ Term : Type
 (Parser.parse_hol) : (Parser (Maybe Term))
 (Parser.parse_hol) = (Parser.guard Term (Parser.match_text "_")
   (Parser.bind String Term (Parser.parse_name) λname
-  (Parser.done Term (Term.hol (Name.make name)))))
+  (Parser.done Term (Term.hol (String.hash name)))))
 
 (Parser.parse_gol) : (Parser (Maybe Term))
 (Parser.parse_gol) = (Parser.guard Term (Parser.match_text "?")
@@ -916,7 +916,7 @@ File : Type
 (Term.show.go term:Term file:File) : ∀(x:String)String
   (Term.show.go (Term.var name) file) = λx((String.show.go (Name.get_string name)) x)
   (Term.show.go (Term.use name uses) file) = λx((String.show.go "$") ((String.show.go (Name.get_string name)) x))
-  (Term.show.go (Term.hol name) file) = λx((String.show.go "_") ((String.show.go (U32.show (Name.get_hash name))) x))
+  (Term.show.go (Term.hol hash) file) = λx((String.show.go "_") ((String.show.go (U32.show (hash))) x))
   (Term.show.go (Term.let name expr body) file) = 
     λx((String.show.go "let ")
       ((String.show.go (Name.get_string name))
