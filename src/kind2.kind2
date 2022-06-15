@@ -720,14 +720,14 @@ Term : Type
   (Parser.bind (List Term) Term (Parser.parse_until Term (Parser.match_text ")") Parser.parse_term) λargs
   (Parser.done Term ((List.fold Term ∀(a:Term)Term args λx(x) λxλtλf(t (Term.app f x))) func)))))
 
-// (Parser.parse_str) : (Parser (Maybe Term))
-// (Parser.parse_str) = (Parser.guard Term (Parser.match_text "'")
-//   (Parser.bind (List Term) Term (Parser.parse_until Term (Parser.match_text "'") Parser.parse_one) λchars
-//   (Parser.done Term (Parser.parse_str_make chars))))
+(Parser.parse_str) : (Parser (Maybe Term))
+(Parser.parse_str) = (Parser.guard Term (Parser.match_text (String.cons '"' String.nil))
+  (Parser.bind (List U32) Term (Parser.parse_until U32 (Parser.match_text (String.cons '"' String.nil)) Parser.parse_one) λchars
+  (Parser.done Term (Parser.parse_str_make chars))))
 
-// (Parser.parse_str_make (List Term)) : Term
-// (Parser.parse_str_make (List.cons x xs) = (Term.cts (Name.make String.cons) (List.cons (N32 x) (Parser.parse_str_make xs))))
-// (Parser.parse_str_make List.nil) = (Term.cts (Name.make String.nil) List.nil)
+(Parser.parse_str_make chars:(List U32)) : Term
+  (Parser.parse_str_make (List.cons U32 x xs)) = (Term.cts (Name.make "String.cons") (List.cons Term  (Term.n32 x) (List.cons Term (Parser.parse_str_make xs) (List.nil Term))))
+  (Parser.parse_str_make (List.nil U32))       = (Term.cts (Name.make "String.nil") (List.nil Term))
 
 (Parser.parse_term) : (Parser Term)
 (Parser.parse_term) =
@@ -745,14 +745,14 @@ Term : Type
                        (List.cons (Parser (Maybe Term)) Parser.parse_lam
                        (List.cons (Parser (Maybe Term)) Parser.parse_app
                        (List.cons (Parser (Maybe Term)) Parser.parse_chr
-                       // (List.cons (Parser (Maybe Term)) Parser.parse_str
+                       (List.cons (Parser (Maybe Term)) Parser.parse_str
                        (List.cons (Parser (Maybe Term)) Parser.parse_gol
                        (List.cons (Parser (Maybe Term)) Parser.parse_rfl
                        (List.cons (Parser (Maybe Term)) Parser.parse_rwt
                        (List.cons (Parser (Maybe Term)) Parser.parse_ann_eql
                        (List.cons (Parser (Maybe Term)) Parser.parse_hol
                        (List.cons (Parser (Maybe Term)) Parser.parse_var
-                       (List.nil  (Parser (Maybe Term))))))))))))))))))
+                       (List.nil  (Parser (Maybe Term)))))))))))))))))))
 
 (Parser.parse_term.end) : (Parser ∀(x:Term)Term)
 (Parser.parse_term.end) =
@@ -859,21 +859,23 @@ File : Type
 (Func.get_rules (Func.new lty rty rules)) = rules
 
 (File.make decls:(List Decl)) : File
-// (File.make decls) = (File.new (File.make.go decls (Map.empty Func)))
+(File.make decls) = (File.new (File.make.go decls (Map.empty Func)))
 
-(File.make.go list:(List Decl) file:(Map Func)) : File
+(File.make.go list:(List Decl) file:(Map Func)) : (Map Func)
   (File.make.go (List.cons Decl (Decl.def_type lhs rhs) decls) file) =
     let ctid = (Ctr.get_id lhs)
     let func = (Func.new lhs rhs Rule.end)
     (File.make.go decls (Map.set Func file (Name.get_hash ctid) func))
 
-  // FIXME: infer lambda
-  // (File.make.go (List.cons Decl (Decl.def_rule lhs rhs) decls) file) =
-  //   let ctid = (Ctr.get_id lhs)
-  //   let func = λfunc (Func.add_rule func (File.make.lhs lhs rhs) rhs)
-  //   (File.make.go decls (Map.mut Func file (Name.GetHash ctid) func))
+  (File.make.go (List.cons Decl (Decl.def_rule lhs rhs) decls) file) =
+    let ctid = (Ctr.get_id lhs)
+    let func = (File.make.go.build lhs rhs)
+    (File.make.go decls (Map.mut Func file (Name.get_hash ctid) func))
 
-  (File.make.go (List.nil Decl) file) = (File.new file)
+  (File.make.go.build lhs:Term rhs:Term) : ∀(x:Func)Func
+    (File.make.go.build lhs rhs) = λx(Func.add_rule x (File.make.lhs lhs rhs) rhs)
+
+  (File.make.go (List.nil Decl) file) = file
 
 // Builds the left-hand side of a rule, annotating variable usage counts.
 // TODO: use different constructor names
