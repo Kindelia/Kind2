@@ -1031,6 +1031,59 @@ File : Type
   (Oper.show.go Op.GTN) = (String.show.go ">")
   (Oper.show.go Op.NEQ) = (String.show.go "!=")
 
+(Newline) : String
+(Newline) = (String.cons 10 String.nil)
+
+(Context.show ctx:(List _) file:File) : ∀(x:String)String
+  // (Context.show (List.nil _) file) = ""
+  // (Context.show ctx file) =
+  //   let ctx = (List.reverse _ ctx)
+  //   let build = λz
+  //     ((String.show.go "Context:")
+  //     ((String.show.go Newline)
+  //     ((Context.show.go ctx file)
+  //       z)))
+  //   (build "")
+
+// TODO: infer
+(Context.show.go ctx:(List (Pair Name Term)) file:File) : ∀(x:String)String
+  (Context.show.go (List.nil _) file) = λz(z)
+  // (Context.show.go (List.cons _ (Pair name type) rest) file) =
+  //   λz((String.show.go "- ")
+  //     ((String.show.go (Name.get_string name))
+  //     ((String.show.go " : ") 
+  //     ((Term.show.go type file)
+  //     ((String.show.go Newline)
+  //     ((Context.show.go rest file)
+  //     z))))))
+
+
+(File.show file:File) : String
+  // (File.show file) = ((File.show.go (Map.values Func (File.get_funcs file)) file) "")
+
+// TODO: infer
+(File.show.go list:(List Func) file) : ∀(x:String)String
+  (File.show.go (List.nil Func) file) = λz(z)
+  // (File.show.go (List.cons Func (Func.new lhs.t lhs.r rules) funs) file) =
+  //   λz((Term.show.go lhs.t file)
+  //     ((String.show.go " : ")
+  //     ((Term.show.go lhs.r file)
+  //     ((String.show.go Newline)
+  //     ((Rules.show.go rules file)
+  //     ((String.show.go Newline)
+  //     ((File.show.go funs file)
+  //     z)))))))
+
+(Rules.show.go rule:Rule file:File) : ∀(x:String)String
+  (Rules.show.go Rule.end file) = λx(x)
+  (Rules.show.go (Rule.new lhs rhs rules) file) =
+    λx((Term.show.go lhs file)
+      ((String.show.go " = ")
+      ((Term.show.go rhs file)
+      ((String.show.go Newline)
+      ((Rules.show.go rules file)
+      x)))))
+
 
 // Evaluation
 // ----------
