@@ -1060,20 +1060,19 @@ File : Type
 
 
 (File.show file:File) : String
-  // (File.show file) = ((File.show.go (Map.values Func (File.get_funcs file)) file) "")
+  (File.show file) = ((File.show.go (Map.values Func (File.get_funcs file)) file) "")
 
-// TODO: infer
-(File.show.go list:(List Func) file) : ∀(x:String)String
+(File.show.go list:(List Func) file:File) : ∀(z:String)String
   (File.show.go (List.nil Func) file) = λz(z)
-  // (File.show.go (List.cons Func (Func.new lhs.t lhs.r rules) funs) file) =
-  //   λz((Term.show.go lhs.t file)
-  //     ((String.show.go " : ")
-  //     ((Term.show.go lhs.r file)
-  //     ((String.show.go Newline)
-  //     ((Rules.show.go rules file)
-  //     ((String.show.go Newline)
-  //     ((File.show.go funs file)
-  //     z)))))))
+  (File.show.go (List.cons Func (Func.new lhs.t lhs.r rules) funs) file) =
+    λz((Term.show.go lhs.t file)
+      ((String.show.go " : ")
+      ((Term.show.go lhs.r file)
+      ((String.show.go Newline)
+      ((Rules.show.go rules file)
+      ((String.show.go Newline)
+      ((File.show.go funs file)
+      z)))))))
 
 (Rules.show.go rule:Rule file:File) : ∀(x:String)String
   (Rules.show.go Rule.end file) = λx(x)
