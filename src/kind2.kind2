@@ -910,6 +910,127 @@ File : Type
 // Stringifying
 // ------------
 
+(Term.show file:File term:Term) : String
+  (Term.show file term) : ((Term.show.go term file) "")
+
+(Term.show.go term:Term file:File) : ∀(x:String)String
+  (Term.show.go (Term.var name) file) = λx((String.show.go (Name.get_string name)) x)
+  (Term.show.go (Term.use name uses) file) = λx((String.show.go "$") ((String.show.go (Name.get_string name)) x))
+  (Term.show.go (Term.hol name) file) = λx((String.show.go "_") ((String.show.go (U32.show (Name.get_hash name))) x))
+  (Term.show.go (Term.let name expr body) file) = 
+    λx((String.show.go "let ")
+      ((String.show.go (Name.get_string name))
+      ((String.show.go " = ")
+      ((Term.show.go expr file)
+      ((String.show.go "; ")
+      ((Term.show.go body file)
+      x))))))
+  (Term.show.go (Term.ann xval xtyp) file) =
+    λx((String.show.go "(")
+      ((Term.show.go xval file)
+      ((String.show.go " :: ")
+      ((Term.show.go xtyp file)
+      ((String.show.go ")")
+      x)))))
+  (Term.show.go Term.typ file) =
+    λx((String.show.go "Type")
+      x)
+  (Term.show.go Term.u32 file) =
+    λx((String.show.go "U32")
+      x)
+  (Term.show.go (Term.n32 numb) file) =
+    λx((String.show.go (U32.show numb))
+      x)
+  (Term.show.go (Term.o32 oper val0 val1) file) =
+    λx((String.show.go "(")
+      ((Oper.show.go oper)
+      ((String.show.go " ")
+      ((Term.show.go val0 file)
+      ((String.show.go " ")
+      ((Term.show.go val1 file)
+      ((String.show.go ")")
+      x)))))))
+  (Term.show.go (Term.gol name) file) =
+    λx((String.show.go "?")
+      ((String.show.go (Name.get_string name))
+      x))
+  (Term.show.go (Term.all name type body) file) =
+    λx((String.show.go "∀(")
+      ((String.show.go (Name.get_string name))
+      ((String.show.go ": ")
+      ((Term.show.go type file)
+      ((String.show.go ") ")
+      ((Term.show.go body file)
+      x))))))
+  (Term.show.go (Term.lam name body) file) =
+    λx((String.show.go "λ")
+      ((String.show.go (Name.get_string name))
+      ((String.show.go " ")
+      ((Term.show.go body file)
+      x))))
+  (Term.show.go (Term.app func argm) file) =
+    λx((String.show.go "(")
+      ((Term.show.go func file)
+      ((String.show.go " ")
+      ((Term.show.go argm file)
+      ((String.show.go ")")
+      x)))))
+  (Term.show.go (Term.cts ctid args) file) =
+    λx((String.show.go "(")
+      ((String.show.go (Name.get_string ctid))
+      ((Term.show.go.cts.args args file)
+      ((String.show.go ")")
+      x))))
+  (Term.show.go (Term.eql val0 val1) file) =
+    λx((Term.show.go val0 file)
+      ((String.show.go " == ")
+      ((Term.show.go val1 file)
+      x)))
+  (Term.show.go (Term.rfl expr) file) =
+    λx((String.show.go "refl ")
+      ((Term.show.go expr file)
+      x))
+  (Term.show.go (Term.rwt name witn goal expr) file) =
+    λx((String.show.go "rewrite ")
+      ((String.show.go (Name.get_string name))
+      ((String.show.go "with ")
+      ((Term.show.go witn file)
+      ((String.show.go "in ")
+      ((Term.show.go goal file)
+      ((String.show.go " ")
+      ((Term.show.go expr file)
+      x))))))))
+
+  (Term.show.go.cts.args list:(List Term) file:File) : ∀(x:String)String
+    (Term.show.go.cts.args (List.nil Term) file) = λx(x)
+    (Term.show.go.cts.args (List.cons Term arg args) file) =
+      λx((String.show.go " ")
+        ((Term.show.go arg file)
+        ((Term.show.go.cts.args args file)
+        x)))
+
+
+(String.show.go xs:String) : ∀(ys:String)String
+(String.show.go xs) = λys(String.concat xs ys)
+
+(Oper.show.go op:Op) : ∀(ys:String)String
+  (Oper.show.go Op.ADD) = (String.show.go "+")
+  (Oper.show.go Op.SUB) = (String.show.go "-")
+  (Oper.show.go Op.MUL) = (String.show.go "*")
+  (Oper.show.go Op.DIV) = (String.show.go (String.cons '/' String.nil)) // "/"
+  (Oper.show.go Op.MOD) = (String.show.go "%")
+  (Oper.show.go Op.AND) = (String.show.go "&")
+  (Oper.show.go Op.OR)  = (String.show.go "|")
+  (Oper.show.go Op.XOR) = (String.show.go "^")
+  (Oper.show.go Op.SHL) = (String.show.go "<<")
+  (Oper.show.go Op.SHR) = (String.show.go ">>")
+  (Oper.show.go Op.LTN) = (String.show.go "<")
+  (Oper.show.go Op.LTE) = (String.show.go "<=")
+  (Oper.show.go Op.EQL) = (String.show.go "==")
+  (Oper.show.go Op.GTE) = (String.show.go ">=")
+  (Oper.show.go Op.GTN) = (String.show.go ">")
+  (Oper.show.go Op.NEQ) = (String.show.go "!=")
+
 
 // Evaluation
 // ----------
