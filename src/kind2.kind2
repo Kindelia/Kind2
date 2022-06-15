@@ -892,17 +892,15 @@ File : Type
 (File.get_funcs file:File) : (Map Func)
   (File.get_funcs (File.new funs)) = funs
 
-// TODO: infer
-(File.got_func file:File ctid:U32) : (Pair File (Maybe Func))
-  // (File.got_func (File.new funs) ctid) =
-  //   (Pair.get (Map Func) (Maybe Func) _ (Map.get Func funs (Name.get_hash ctid)) λfuns λgot
-  //   (Pair.new File (Maybe Func) (File.new funs) got))
+(File.got_func file:File ctid:Name) : (Pair File (Maybe Func))
+  (File.got_func (File.new funs) ctid) =
+    (Pair.get (Map Func) (Maybe Func) (Pair File (Maybe Func)) (Map.get Func funs (Name.get_hash ctid)) λfuns λgot
+    (Pair.new File (Maybe Func) (File.new funs) got))
 
-// TODO: infer
-(File.is_ctr file:File ctid:U32) : U32
-// (File.is_ctr (File funs) ctid) =
-//   (Pair.get _ _ _ (Map.get Func funs (Name.get_hash ctid)) λfuns λgot
-//   (Maybe.case Func U32 got 1 λfunc(File.is_ctr.func func)))
+(File.is_ctr file:File ctid:Name) : U32
+(File.is_ctr (File.new funs) ctid) =
+  (Pair.get (Map Func) (Maybe Func) U32 (Map.get Func funs (Name.get_hash ctid)) λfuns λgot
+  (Maybe.case Func U32 got 1 λfunc(File.is_ctr.func func)))
 
 (File.is_ctr.func func:Func) : U32
   (File.is_ctr.func (Func.new lty rty Rule.end))                 = 1
