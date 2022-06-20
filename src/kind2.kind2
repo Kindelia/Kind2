@@ -102,6 +102,13 @@ Bool: Type
   (Maybe.case a r (Maybe.some a x) case_none case_some) = (case_some x)
   (Maybe.case a r (Maybe.none a)   case_none case_some) = case_none
 
+// Result 
+// ======
+
+(Result t:Type e:Type) : Type
+  (Result.ok t:Type e:Type value:t) : (Result t e)
+  (Result.err t:Type e:Type err:e) : (Result t e)
+
 // List
 // ====
 
@@ -324,7 +331,7 @@ Code : Type
 
 (Answer a:Type): Type
   (Answer.parsed a:Type code:(Code) result:a) : (Answer a)
-  (Answer.failed a:Type String) : (Answer a)
+  (Answer.failed a:Type err:String) : (Answer a)
 
 (Parser a:Type): Type
   (Parser a) = ∀(x: Code) (Answer a)
@@ -793,6 +800,18 @@ File : Type
 
 (Parser.parse_decls) : (Parser (List Decl))
   (Parser.parse_decls) = (Parser.parse_until Decl λcode((Parser.parse_end) (Parser.skipper code)) Parser.parse_decl)
+
+(Term.read code:Code) : Term
+  (Term.read code) = (Term.read.got ((Parser.parse_term) code))
+(Term.read.got answer:(Answer Term)) : Term
+  (Term.read.got (Answer.parsed Term code term)) = term
+  (Term.read.got (Answer.failed Term err))       = (Term.var (Name.make (String.concat "[ParseError] " err)))
+
+(File.read code:Code) : (Result File String)
+  (File.read code) = (File.read.got ((Parser.parse_decls) code))
+(File.read.got answer:(Answer (List Decl))) : (Result File String)
+  (File.read.got (Answer.parsed (List Decl) code decls)) = (Result.ok File String (File.make decls))
+  (File.read.got (Answer.failed (List Decl) err))        = (Result.err File String (String.concat "[ParseError] " err))
 
 (Term.def Name Term Term) : Term
 (Term.def nm val (Term.var name))                = (U32.if Term (Name.equal name nm) val (Term.var name))
