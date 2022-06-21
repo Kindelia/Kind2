@@ -977,16 +977,15 @@ HTerm : Type
 (High.go term:Term file:File vars:(List (Pair String HTerm))) : (Triple File (List (Pair String HTerm)) HTerm)
 
   // (High.go (Term.var name) file vars) = (HighFind name file vars)
-  //   (HighFind name:Name file:File xs:(List (Pair String HTerm))) : (Triple File (List (Pair String HTerm)) HTerm) 
+  //   (HighFind name:Name file:File list:(List (Pair String HTerm))) : (Triple File (List (Pair String HTerm)) HTerm) 
   //   (HighFind name file (List.nil (Pair String HTerm))) = (Triple.new File (List (Pair String HTerm)) HTerm file (List.nil (Pair String HTerm)) (HTerm.var name))
-  //   (HighFind name file (List.cons (Pair String HTerm) (Pair var val) vars)) = (HighFound (Name.equal name var) name var val file vars)
+  //   (HighFind name file (List.cons (Pair String HTerm) (Pair.new var val) vars)) = (HighFound (Name.equal name var) name var val file vars)
   //     (HighFound 1 name var val file vars) = (Triple.new File (List (Pair String HTerm)) HTerm file vars val)
   //     (HighFound 0 name var val file vars) =
   //       (Triple.get File (List (Pair String HTerm)) HTerm (Triple File (List (Pair String HTerm)) HTerm) (HighFind name file vars) λfile λvars λgot
   //       (Triple.new File (List (Pair String HTerm)) HTerm file (List.cons (Pair String HTerm) (Pair var val) vars) got))
 
   (High.go (Term.use name count) file vars) =
-    //(Trip file vars (HUse name count)) // ???
     (High.go (Term.var name) file vars)
 
   (High.go (Term.ann xval xtyp) file vars) =
@@ -1017,7 +1016,7 @@ HTerm : Type
   // (High.go (Term.let name expr body) file vars) =
   //   (Triple.get File (List (Pair String HTerm)) HTerm (Triple File (List (Pair String HTerm)) HTerm) (High.go expr file vars) λfile λvars λexpr
   //   (Triple.get File (List (Pair String HTerm)) HTerm (Triple File (List (Pair String HTerm)) HTerm) (High.go body file (CloneFor HTerm body name expr vars)) λfile λvars λbody
-  //   (Triple.new File (List (Pair String HTerm)) HTerm file vars body)))]
+  //   (Triple.new File (List (Pair String HTerm)) HTerm file vars body)))
 
   // (High.go (Term.app func argm) file vars) =
   //   (Triple.get File (List (Pair String HTerm)) HTerm (Triple File (List (Pair String HTerm)) HTerm) (High.go func file vars) λfile λvars λfunc
@@ -1025,11 +1024,10 @@ HTerm : Type
   //   (Triple.new File (List (Pair String HTerm)) HTerm file vars (HApply func argm))))
     
   // (High.go (Term.cts ctid args) file vars) =
-  //   (Pair.get File (Maybe Func) (File.got_func file ctid)     λfile λfunc
+  //   (Pair.get File (Maybe Func) (Pair File (Maybe Func)) (File.got_func file ctid)     λfile λfunc
   //   (Triple.get File (List (Pair String HTerm)) HTerm (Triple File (List (Pair String HTerm)) HTerm) (High.go.many args file vars) λfile λvars λargs
   //   (High.go.cts func (HTerm.cts ctid args) file vars)))
 
-    // (File.got_func file:File ctid:U32) : (Pair File (Maybe Func))
 
   // (High.go (Term.arg name expr) file vars) = 
   // (High.go expr file vars)
@@ -1049,8 +1047,13 @@ HTerm : Type
     (Triple.new File (List (Pair String HTerm)) HTerm file vars expr))
 
 
-// (Triple a:Type b:Type c:Type): Type
-//   (Triple.new a:Type b:Type c:Type fst:a snd:b trd:c): (Triple a b c)
+// (High.go.many xs:(List Term) file:File vars::(List (Pair String HTerm))) : File
+  // (High.go.many Nil file vars) =
+  //   (Trip.new File (List (Pair String HTerm)) HTerm file vars Nil)
+  // (High.go.many (Cons x xs) file vars) =
+  //   (Triple.get (List (Pair String HTerm)) HTerm (Triple File (List (Pair String HTerm)) HTerm) (High.go x file vars)       λfile λvars λx
+  //   (Triple.get (List (Pair String HTerm)) HTerm (Triple File (List (Pair String HTerm)) HTerm) (High.go.many xs file vars) λfile λvars λxs
+  //   (Triple.new File (List (Pair String HTerm)) HTerm file vars (Cons x xs))))
 
-// (Triple.get a:Type b:Type c:Type d:Type t:(Triple a b c) f:∀(x:a)∀(y:b)∀(z:c)d): d
-//   (Triple.get a b c d (Triple.new a b c x y z) f) = (f x y z)
+   (High.go (Term.hol hash) file vars) =
+    (Triple.new File (List (Pair String HTerm)) HTerm file vars (HTerm.hol hash))
