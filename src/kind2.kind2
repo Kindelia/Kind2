@@ -543,9 +543,10 @@ Term : Type
   (Term.typ)                                         : Term
   (Term.ann expr:Term type:Term)                     : Term
   (Term.hol hash:Name)                               : Term     
-  (Term.use name:Name numb:U32)                     : Term
+  (Term.use name:Name numb:U32)                      : Term
   (Term.eql val0:Term val1:Term)                     : Term
   (Term.rwt name:Name witn:Term goal:Term expr:Term) : Term
+  (Term.arg name:Name expr:Term)                     : Term
 
 // TODO: complete
 (Parser.parse_oper) : (Parser Op)
@@ -1032,8 +1033,8 @@ Vars = (List (Pair String HTerm))
   //   (High.go.cts func (HTerm.cts ctid args) file vars)))
 
 
-  // (High.go (Term.arg name expr) file vars) = 
-  // (High.go expr file vars)
+  (High.go (Term.arg name expr) file vars) = 
+    (High.go expr file vars)
 
   
   (High.go (Term.eql val0 val1) file vars) =
