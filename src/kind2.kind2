@@ -102,6 +102,13 @@ Bool: Type
   (Maybe.case a r (Maybe.some a x) case_none case_some) = (case_some x)
   (Maybe.case a r (Maybe.none a)   case_none case_some) = case_none
 
+// Result 
+// ======
+
+(Result t:Type e:Type) : Type
+  (Result.ok t:Type e:Type value:t) : (Result t e)
+  (Result.err t:Type e:Type err:e) : (Result t e)
+
 // List
 // ====
 
@@ -324,7 +331,7 @@ Code : Type
 
 (Answer a:Type): Type
   (Answer.parsed a:Type code:(Code) result:a) : (Answer a)
-  (Answer.failed a:Type String) : (Answer a)
+  (Answer.failed a:Type err:String) : (Answer a)
 
 (Parser a:Type): Type
   (Parser a) = ∀(x: Code) (Answer a)
@@ -542,7 +549,7 @@ Term : Type
   (Term.gol name:Name)                               : Term
   (Term.typ)                                         : Term
   (Term.ann expr:Term type:Term)                     : Term
-  (Term.hol hash:Name)                               : Term     
+  (Term.hol hash:U32)                                : Term     
   (Term.use name:Name numb:U32)                      : Term
   (Term.eql val0:Term val1:Term)                     : Term
   (Term.rwt name:Name witn:Term goal:Term expr:Term) : Term
@@ -634,7 +641,7 @@ Term : Type
 (Parser.parse_hol) : (Parser (Maybe Term))
 (Parser.parse_hol) = (Parser.guard Term (Parser.match_text "_")
   (Parser.bind String Term (Parser.parse_name) λname
-  (Parser.done Term (Term.hol (Name.make name)))))
+  (Parser.done Term (Term.hol (String.hash name)))))
 
 (Parser.parse_gol) : (Parser (Maybe Term))
 (Parser.parse_gol) = (Parser.guard Term (Parser.match_text "?")
@@ -721,14 +728,14 @@ Term : Type
   (Parser.bind (List Term) Term (Parser.parse_until Term (Parser.match_text ")") Parser.parse_term) λargs
   (Parser.done Term ((List.fold Term ∀(a:Term)Term args λx(x) λxλtλf(t (Term.app f x))) func)))))
 
-// (Parser.parse_str) : (Parser (Maybe Term))
-// (Parser.parse_str) = (Parser.guard Term (Parser.match_text "'")
-//   (Parser.bind (List Term) Term (Parser.parse_until Term (Parser.match_text "'") Parser.parse_one) λchars
-//   (Parser.done Term (Parser.parse_str_make chars))))
+(Parser.parse_str) : (Parser (Maybe Term))
+(Parser.parse_str) = (Parser.guard Term (Parser.match_text (String.cons '"' String.nil))
+  (Parser.bind (List U32) Term (Parser.parse_until U32 (Parser.match_text (String.cons '"' String.nil)) Parser.parse_one) λchars
+  (Parser.done Term (Parser.parse_str_make chars))))
 
-// (Parser.parse_str_make (List Term)) : Term
-// (Parser.parse_str_make (List.cons x xs) = (Term.cts (Name.make String.cons) (List.cons (N32 x) (Parser.parse_str_make xs))))
-// (Parser.parse_str_make List.nil) = (Term.cts (Name.make String.nil) List.nil)
+(Parser.parse_str_make chars:(List U32)) : Term
+  (Parser.parse_str_make (List.cons U32 x xs)) = (Term.cts (Name.make "String.cons") (List.cons Term  (Term.n32 x) (List.cons Term (Parser.parse_str_make xs) (List.nil Term))))
+  (Parser.parse_str_make (List.nil U32))       = (Term.cts (Name.make "String.nil") (List.nil Term))
 
 (Parser.parse_term) : (Parser Term)
 (Parser.parse_term) =
@@ -746,14 +753,14 @@ Term : Type
                        (List.cons (Parser (Maybe Term)) Parser.parse_lam
                        (List.cons (Parser (Maybe Term)) Parser.parse_app
                        (List.cons (Parser (Maybe Term)) Parser.parse_chr
-                       // (List.cons (Parser (Maybe Term)) Parser.parse_str
+                       (List.cons (Parser (Maybe Term)) Parser.parse_str
                        (List.cons (Parser (Maybe Term)) Parser.parse_gol
                        (List.cons (Parser (Maybe Term)) Parser.parse_rfl
                        (List.cons (Parser (Maybe Term)) Parser.parse_rwt
                        (List.cons (Parser (Maybe Term)) Parser.parse_ann_eql
                        (List.cons (Parser (Maybe Term)) Parser.parse_hol
                        (List.cons (Parser (Maybe Term)) Parser.parse_var
-                       (List.nil  (Parser (Maybe Term))))))))))))))))))
+                       (List.nil  (Parser (Maybe Term)))))))))))))))))))
 
 (Parser.parse_term.end) : (Parser ∀(x:Term)Term)
 (Parser.parse_term.end) =
@@ -794,6 +801,18 @@ File : Type
 
 (Parser.parse_decls) : (Parser (List Decl))
   (Parser.parse_decls) = (Parser.parse_until Decl λcode((Parser.parse_end) (Parser.skipper code)) Parser.parse_decl)
+
+(Term.read code:Code) : Term
+  (Term.read code) = (Term.read.got ((Parser.parse_term) code))
+(Term.read.got answer:(Answer Term)) : Term
+  (Term.read.got (Answer.parsed Term code term)) = term
+  (Term.read.got (Answer.failed Term err))       = (Term.var (Name.make (String.concat "[ParseError] " err)))
+
+(File.read code:Code) : (Result File String)
+  (File.read code) = (File.read.got ((Parser.parse_decls) code))
+(File.read.got answer:(Answer (List Decl))) : (Result File String)
+  (File.read.got (Answer.parsed (List Decl) code decls)) = (Result.ok File String (File.make decls))
+  (File.read.got (Answer.failed (List Decl) err))        = (Result.err File String (String.concat "[ParseError] " err))
 
 (Term.def Name Term Term) : Term
 (Term.def nm val (Term.var name))                = (U32.if Term (Name.equal name nm) val (Term.var name))
@@ -860,21 +879,23 @@ File : Type
 (Func.get_rules (Func.new lty rty rules)) = rules
 
 (File.make decls:(List Decl)) : File
-// (File.make decls) = (File.new (File.make.go decls (Map.empty Func)))
+(File.make decls) = (File.new (File.make.go decls (Map.empty Func)))
 
-(File.make.go list:(List Decl) file:(Map Func)) : File
+(File.make.go list:(List Decl) file:(Map Func)) : (Map Func)
   (File.make.go (List.cons Decl (Decl.def_type lhs rhs) decls) file) =
     let ctid = (Ctr.get_id lhs)
     let func = (Func.new lhs rhs Rule.end)
     (File.make.go decls (Map.set Func file (Name.get_hash ctid) func))
 
-  // FIXME: infer lambda
-  // (File.make.go (List.cons Decl (Decl.def_rule lhs rhs) decls) file) =
-  //   let ctid = (Ctr.get_id lhs)
-  //   let func = λfunc (Func.add_rule func (File.make.lhs lhs rhs) rhs)
-  //   (File.make.go decls (Map.mut Func file (Name.GetHash ctid) func))
+  (File.make.go (List.cons Decl (Decl.def_rule lhs rhs) decls) file) =
+    let ctid = (Ctr.get_id lhs)
+    let func = (File.make.go.build lhs rhs)
+    (File.make.go decls (Map.mut Func file (Name.get_hash ctid) func))
 
-  (File.make.go (List.nil Decl) file) = (File.new file)
+  (File.make.go.build lhs:Term rhs:Term) : ∀(x:Func)Func
+    (File.make.go.build lhs rhs) = λx(Func.add_rule x (File.make.lhs lhs rhs) rhs)
+
+  (File.make.go (List.nil Decl) file) = file
 
 // Builds the left-hand side of a rule, annotating variable usage counts.
 // TODO: use different constructor names
@@ -893,17 +914,15 @@ File : Type
 (File.get_funcs file:File) : (Map Func)
   (File.get_funcs (File.new funs)) = funs
 
-// TODO: infer
-(File.got_func file:File ctid:U32) : (Pair File (Maybe Func))
-  // (File.got_func (File.new funs) ctid) =
-  //   (Pair.get (Map Func) (Maybe Func) _ (Map.get Func funs (Name.get_hash ctid)) λfuns λgot
-  //   (Pair.new File (Maybe Func) (File.new funs) got))
+(File.got_func file:File ctid:Name) : (Pair File (Maybe Func))
+  (File.got_func (File.new funs) ctid) =
+    (Pair.get (Map Func) (Maybe Func) (Pair File (Maybe Func)) (Map.get Func funs (Name.get_hash ctid)) λfuns λgot
+    (Pair.new File (Maybe Func) (File.new funs) got))
 
-// TODO: infer
-(File.is_ctr file:File ctid:U32) : U32
-// (File.is_ctr (File funs) ctid) =
-//   (Pair.get _ _ _ (Map.get Func funs (Name.get_hash ctid)) λfuns λgot
-//   (Maybe.case Func U32 got 1 λfunc(File.is_ctr.func func)))
+(File.is_ctr file:File ctid:Name) : U32
+(File.is_ctr (File.new funs) ctid) =
+  (Pair.get (Map Func) (Maybe Func) U32 (Map.get Func funs (Name.get_hash ctid)) λfuns λgot
+  (Maybe.case Func U32 got 1 λfunc(File.is_ctr.func func)))
 
 (File.is_ctr.func func:Func) : U32
   (File.is_ctr.func (Func.new lty rty Rule.end))                 = 1
@@ -912,6 +931,180 @@ File : Type
 
 // Stringifying
 // ------------
+
+(Term.show file:File term:Term) : String
+  (Term.show file term) : ((Term.show.go term file) "")
+
+(Term.show.go term:Term file:File) : ∀(x:String)String
+  (Term.show.go (Term.var name) file) = λx((String.show.go (Name.get_string name)) x)
+  (Term.show.go (Term.use name uses) file) = λx((String.show.go "$") ((String.show.go (Name.get_string name)) x))
+  (Term.show.go (Term.hol hash) file) = λx((String.show.go "_") ((String.show.go (U32.show (hash))) x))
+  (Term.show.go (Term.let name expr body) file) = 
+    λx((String.show.go "let ")
+      ((String.show.go (Name.get_string name))
+      ((String.show.go " = ")
+      ((Term.show.go expr file)
+      ((String.show.go "; ")
+      ((Term.show.go body file)
+      x))))))
+  (Term.show.go (Term.ann xval xtyp) file) =
+    λx((String.show.go "(")
+      ((Term.show.go xval file)
+      ((String.show.go " :: ")
+      ((Term.show.go xtyp file)
+      ((String.show.go ")")
+      x)))))
+  (Term.show.go Term.typ file) =
+    λx((String.show.go "Type")
+      x)
+  (Term.show.go Term.u32 file) =
+    λx((String.show.go "U32")
+      x)
+  (Term.show.go (Term.n32 numb) file) =
+    λx((String.show.go (U32.show numb))
+      x)
+  (Term.show.go (Term.o32 oper val0 val1) file) =
+    λx((String.show.go "(")
+      ((Oper.show.go oper)
+      ((String.show.go " ")
+      ((Term.show.go val0 file)
+      ((String.show.go " ")
+      ((Term.show.go val1 file)
+      ((String.show.go ")")
+      x)))))))
+  (Term.show.go (Term.gol name) file) =
+    λx((String.show.go "?")
+      ((String.show.go (Name.get_string name))
+      x))
+  (Term.show.go (Term.all name type body) file) =
+    λx((String.show.go "∀(")
+      ((String.show.go (Name.get_string name))
+      ((String.show.go ": ")
+      ((Term.show.go type file)
+      ((String.show.go ") ")
+      ((Term.show.go body file)
+      x))))))
+  (Term.show.go (Term.lam name body) file) =
+    λx((String.show.go "λ")
+      ((String.show.go (Name.get_string name))
+      ((String.show.go " ")
+      ((Term.show.go body file)
+      x))))
+  (Term.show.go (Term.app func argm) file) =
+    λx((String.show.go "(")
+      ((Term.show.go func file)
+      ((String.show.go " ")
+      ((Term.show.go argm file)
+      ((String.show.go ")")
+      x)))))
+  (Term.show.go (Term.cts ctid args) file) =
+    λx((String.show.go "(")
+      ((String.show.go (Name.get_string ctid))
+      ((Term.show.go.cts.args args file)
+      ((String.show.go ")")
+      x))))
+  (Term.show.go (Term.eql val0 val1) file) =
+    λx((Term.show.go val0 file)
+      ((String.show.go " == ")
+      ((Term.show.go val1 file)
+      x)))
+  (Term.show.go (Term.rfl expr) file) =
+    λx((String.show.go "refl ")
+      ((Term.show.go expr file)
+      x))
+  (Term.show.go (Term.rwt name witn goal expr) file) =
+    λx((String.show.go "rewrite ")
+      ((String.show.go (Name.get_string name))
+      ((String.show.go "with ")
+      ((Term.show.go witn file)
+      ((String.show.go "in ")
+      ((Term.show.go goal file)
+      ((String.show.go " ")
+      ((Term.show.go expr file)
+      x))))))))
+
+  (Term.show.go.cts.args list:(List Term) file:File) : ∀(x:String)String
+    (Term.show.go.cts.args (List.nil Term) file) = λx(x)
+    (Term.show.go.cts.args (List.cons Term arg args) file) =
+      λx((String.show.go " ")
+        ((Term.show.go arg file)
+        ((Term.show.go.cts.args args file)
+        x)))
+
+
+(String.show.go xs:String) : ∀(ys:String)String
+(String.show.go xs) = λys(String.concat xs ys)
+
+(Oper.show.go op:Op) : ∀(ys:String)String
+  (Oper.show.go Op.ADD) = (String.show.go "+")
+  (Oper.show.go Op.SUB) = (String.show.go "-")
+  (Oper.show.go Op.MUL) = (String.show.go "*")
+  (Oper.show.go Op.DIV) = (String.show.go (String.cons '/' String.nil)) // "/"
+  (Oper.show.go Op.MOD) = (String.show.go "%")
+  (Oper.show.go Op.AND) = (String.show.go "&")
+  (Oper.show.go Op.OR)  = (String.show.go "|")
+  (Oper.show.go Op.XOR) = (String.show.go "^")
+  (Oper.show.go Op.SHL) = (String.show.go "<<")
+  (Oper.show.go Op.SHR) = (String.show.go ">>")
+  (Oper.show.go Op.LTN) = (String.show.go "<")
+  (Oper.show.go Op.LTE) = (String.show.go "<=")
+  (Oper.show.go Op.EQL) = (String.show.go "==")
+  (Oper.show.go Op.GTE) = (String.show.go ">=")
+  (Oper.show.go Op.GTN) = (String.show.go ">")
+  (Oper.show.go Op.NEQ) = (String.show.go "!=")
+
+(Newline) : String
+(Newline) = (String.cons 10 String.nil)
+
+(Context.show ctx:(List (Pair Name Term)) file:File) : String
+  (Context.show (List.nil _) file) = ""
+  (Context.show ctx file) =
+    let new_ctx = (List.reverse (Pair Name Term) ctx)
+    ((Context.show.build new_ctx file) "")
+
+(Context.show.build ctx:(List (Pair Name Term)) file:File) : ∀(z:String)String
+  (Context.show.build ctx file) = λz
+    ((String.show.go "Context:")
+    ((String.show.go Newline)
+    ((Context.show.go ctx file)
+      z)))
+
+(Context.show.go ctx:(List (Pair Name Term)) file:File) : ∀(z:String)String
+  (Context.show.go (List.nil _) file) = λz(z)
+  (Context.show.go (List.cons (Pair Name Term) (Pair.new Name Term name type) rest) file) =
+    λz((String.show.go "- ")
+      ((String.show.go (Name.get_string name))
+      ((String.show.go " : ") 
+      ((Term.show.go type file)
+      ((String.show.go Newline)
+      ((Context.show.go rest file)
+      z))))))
+
+
+(File.show file:File) : String
+  (File.show file) = ((File.show.go (Map.values Func (File.get_funcs file)) file) "")
+
+(File.show.go list:(List Func) file:File) : ∀(z:String)String
+  (File.show.go (List.nil Func) file) = λz(z)
+  (File.show.go (List.cons Func (Func.new lhs.t lhs.r rules) funs) file) =
+    λz((Term.show.go lhs.t file)
+      ((String.show.go " : ")
+      ((Term.show.go lhs.r file)
+      ((String.show.go Newline)
+      ((Rules.show.go rules file)
+      ((String.show.go Newline)
+      ((File.show.go funs file)
+      z)))))))
+
+(Rules.show.go rule:Rule file:File) : ∀(x:String)String
+  (Rules.show.go Rule.end file) = λx(x)
+  (Rules.show.go (Rule.new lhs rhs rules) file) =
+    λx((Term.show.go lhs file)
+      ((String.show.go " = ")
+      ((Term.show.go rhs file)
+      ((String.show.go Newline)
+      ((Rules.show.go rules file)
+      x)))))
 
 
 // Evaluation
