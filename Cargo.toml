@@ -16,7 +16,7 @@ readme = "README.md"
 # CLI arguments parser
 clap = { version = "3.1.3", features = ["derive"] }
 # The mighty functional runtime
-hvm = "0.1.24"
+hvm = "0.1.28"
 #hvm = { path = "../hvm" }
 
 stacker = "0.1"

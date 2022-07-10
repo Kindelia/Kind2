@@ -1,35 +1,37 @@
 // Kind2 implemented in Kind2
 // ==========================
 
-// U32
+// U60
 // ===
 
-(U32.if a:Type cond:U32 if_t:a if_f:a): a
-  (U32.if a 0 t f) = f
-  (U32.if a 1 t f) = t
+(U60.if a:Type cond:U60 if_t:a if_f:a): a
+  (U60.if a 0 t f) = f
+  (U60.if a 1 t f) = t
 
-(U32.and a:U32 b:U32): U32
-  (U32.and 0 b) = 0
-  (U32.and 1 b) = b
+(U60.and a:U60 b:U60): U60
+  (U60.and 0 b) = 0
+  (U60.and 1 b) = b
 
-(U32.not a:U32): U32
-  (U32.not 0) = 1
-  (U32.not 1) = 0
+(U60.not a:U60): U60
+  (U60.not 0) = 1
+  (U60.not 1) = 0
 
-(U32.read str:String) : U32
-  (U32.read str) = (U32.read.go str 0)
+(U60.read str:String) : U60
+  (U60.read str) = (U60.read.go str 0)
 
-(U32.read.go str:String r:U32) : U32
-  (U32.read.go String.nil         r) = r
-  (U32.read.go (String.cons x xs) r) = (U32.if U32 (& (<= '0' x) (<= x '9')) (U32.read.go xs (+ (* r 10) (- x '0'))) 0) 
+(U60.read.go str:String r:U60) : U60
+  (U60.read.go String.nil         r) = r
+  (U60.read.go (String.cons x xs) r) = (U60.if U60 (& (<= '0' x) (<= x '9')) (U60.read.go xs (+ (* r 10) (- x '0'))) 0) 
 
 // TODO: parser error huh...
-(U32.show n:U32) : String
-  // (U32.show n) = (U32.show_build n String.nil)
-(U32.show_build n:U32 str:String) : String
-  // (U32.show_build n str) = 
-    // let next = (String.cons (+ 48 (% n 10)) str)
-    // ((U32.if String (< n 10) λx(x) λx(U32.show_build (/ n 10) x)) next)
+(U60.show n:U60) : String
+  (U60.show n) = (U60.show_build n String.nil)
+
+(U60.show_build n:U60 str:String) : String
+  (U60.show_build n str) = 
+    let next = (String.cons (+ 48 (% n 10)) str)
+    let cond = (U60.if ∀(x:String)String (< n 10) λx(x) λx(U60.show_build (/ n 10) x))
+    (cond next)
 
 // Unit
 // ====
@@ -79,18 +81,6 @@ Bool: Type
 (Triple.get a:Type b:Type c:Type d:Type t:(Triple a b c) f:∀(x:a)∀(y:b)∀(z:c)d): d
   (Triple.get a b c d (Triple.new a b c x y z) f) = (f x y z)
 
-// Tuple2
-// ======
-
-(Tuple2 a:Type b:Type): Type
-  (Tuple2 a b) = ∀(p: Type) ∀(new: ∀(x0: a) ∀(x1: b) p) p
-
-(Tuple2.new a:Type b:Type x0:a x1:b): (Tuple2 a b)
-  (Tuple2.new a b x0 x1) = λp λnew (new x0 x1)
-
-(Tuple2.get a:Type b:Type c:Type p:(Tuple2 a b) f:∀(x:a)∀(y:b)c): c
-  (Tuple2.get a b c tup f) = (tup c f)
-
 // Maybe
 // =====
 
@@ -127,11 +117,11 @@ Bool: Type
   (List.reverse.go a (List.nil a)            r) = r
   (List.reverse.go a (List.cons a head tail) r) = (List.reverse.go a tail (List.cons a head r))
 
-(List.length a:Type l:(List a)): U32
+(List.length a:Type l:(List a)): U60
   (List.length a (List.nil a))            = 0
   (List.length a (List.cons a head tail)) = (+ 1 (List.length a tail))
 
-(List.is_empty a:Type l:(List a)): U32
+(List.is_empty a:Type l:(List a)): U60
   (List.is_empty a (List.nil a))            = 1
   (List.is_empty a (List.cons a head tail)) = 0
 
@@ -143,37 +133,37 @@ Bool: Type
   (List.fold a r (List.nil a)       nil cons) = nil
   (List.fold a r (List.cons a x xs) nil cons) = (cons x (List.fold a r xs nil cons))
 
-(List.to_map a:Type list:(List (Pair U32 a))) : (Map a)
+(List.to_map a:Type list:(List (Pair U60 a))) : (Map a)
   (List.to_map a list) = (List.to_map.go a list (Map.empty a))
 
-(List.to_map.go a:Type list:(List (Pair U32 a)) map:(Map a)) : (Map a)
-  (List.to_map.go a (List.nil (Pair U32 a))                              map) = map
-  (List.to_map.go a (List.cons (Pair U32 a) (Pair.new U32 a key val) xs) map) = (List.to_map.go a xs (Map.set a map key val))
+(List.to_map.go a:Type list:(List (Pair U60 a)) map:(Map a)) : (Map a)
+  (List.to_map.go a (List.nil (Pair U60 a))                              map) = map
+  (List.to_map.go a (List.cons (Pair U60 a) (Pair.new U60 a key val) xs) map) = (List.to_map.go a xs (Map.set a map key val))
 
 // Name
 // ====
 
 Name : Type
-  (Name.new str:String hash:U32) : Name
+  (Name.new str:String hash:U60) : Name
 
 (Name.make str:String) : Name
   (Name.make str) = (Name.new str (String.hash str))
 
-(Name.get_hash name:Name) : U32
+(Name.get_hash name:Name) : U60
   (Name.get_hash (Name.new str hash)) = hash
 
 (Name.get_string name:Name) : String
   (Name.get_string (Name.new str hash)) = str
   (Name.get_string (Name.new str hash)) = (String.concat "TODO: Name.get_string" str)
 
-(Name.equal a_name:Name b_name:Name) : U32
+(Name.equal a_name:Name b_name:Name) : U60
   (Name.equal (Name.new a_str a_hash) (Name.new b_str b_hash)) = (== a_hash b_hash)
 
 // String
 // ======
 
 Char : Type
-  Char = U32
+  Char = U60
 
 String : Type
   (String.cons head:Char tail:String) : String
@@ -195,15 +185,15 @@ String : Type
   (String.flatten (List.cons String x xs)) = (String.concat x (String.flatten xs))
 
 // Returns true if two strings are equal
-(String.equal xs:String ys:String) : U32
+(String.equal xs:String ys:String) : U60
   (String.equal String.nil         String.nil)         = 1
   (String.equal (String.cons x xs) (String.cons y ys)) = (& (== x y) (String.equal xs ys))
-  (String.equal xs             ys)             = 0
+  (String.equal xs                 ys)                 = 0
 
-(String.hash xs:String) : U32
+(String.hash xs:String) : U60
   (String.hash str) = (String.hash.go str 0)
 
-(String.hash.go xs:String hash:U32) : U32
+(String.hash.go xs:String hash:U60) : U60
   (String.hash.go String.nil         hash) = hash
   (String.hash.go (String.cons x xs) hash) = (String.hash.go xs (+ (- (<< hash 5) hash) x))
 
@@ -224,15 +214,15 @@ String : Type
   (Map.entry a:Type value:a)                 : (Map a)
   (Map.nodes a:Type lft:(Map a) rgt:(Map a)) : (Map a)
 
-(Map.length a:Type tree:(Map a)) : U32
+(Map.length a:Type tree:(Map a)) : U60
   (Map.length a (Map.empty a        )) = 0
   (Map.length a (Map.entry a     val)) = 1
   (Map.length a (Map.nodes a lft rgt)) = (+ (Map.length a lft) (Map.length a rgt))
 
-(Map.get a:Type tree:(Map a) key:U32) : (Pair (Map a) (Maybe a))
+(Map.get a:Type tree:(Map a) key:U60) : (Pair (Map a) (Maybe a))
 (Map.get a tree key) = (Map.get.go a 32 tree key (λx x))
 
-(Map.get.go a:Type n:U32 tree:(Map a) key:U32 self:∀(x:(Map a))(Map a)) : (Pair (Map a) (Maybe a))
+(Map.get.go a:Type n:U60 tree:(Map a) key:U60 self:∀(x:(Map a))(Map a)) : (Pair (Map a) (Maybe a))
   (Map.get.go a n (Map.empty a) key self) =
     (Pair.new (Map a) (Maybe a) (self (Map.empty a)) (Maybe.none a))
   (Map.get.go a n (Map.entry a val) key self) =
@@ -240,52 +230,52 @@ String : Type
   (Map.get.go a n (Map.nodes a lft rgt) key self) =
     (Map.get.go.nodes a (& (>> key (- n 1)) 1) (- n 1) key lft rgt self)
 
-(Map.get.go.nodes a:Type i:U32 n:U32 key:U32 lft:(Map a) rgt:(Map a) self:∀(x:(Map a))(Map a)) : (Pair (Map a) (Maybe a))
+(Map.get.go.nodes a:Type i:U60 n:U60 key:U60 lft:(Map a) rgt:(Map a) self:∀(x:(Map a))(Map a)) : (Pair (Map a) (Maybe a))
   (Map.get.go.nodes a 0 n key lft rgt self) =
     (Map.get.go a n lft key λx(self (Map.nodes a x rgt)))
   (Map.get.go.nodes a 1 n key lft rgt self) =
     (Map.get.go a n rgt key λx(self (Map.nodes a lft x)))
 
-(Map.delete a:Type tree:(Map a) key:U32) : (Map a)
+(Map.delete a:Type tree:(Map a) key:U60) : (Map a)
 (Map.delete a tree key) = (Map.delete.go a 32 tree key)
 
-(Map.delete.go a:Type n:U32 tree:(Map a) key:U32) : (Map a)
+(Map.delete.go a:Type n:U60 tree:(Map a) key:U60) : (Map a)
   (Map.delete.go a n (Map.nodes a lft rgt) key) =
     (Map.delete.go.nodes a (& (>> key (- n 1)) 1) (- n 1) lft rgt key)
   (Map.delete.go a n tree key) = (Map.empty a)
 
-(Map.delete.go.nodes a:Type i:U32 n:U32 lft:(Map a) rgt:(Map a) key:U32) : (Map a)
+(Map.delete.go.nodes a:Type i:U60 n:U60 lft:(Map a) rgt:(Map a) key:U60) : (Map a)
   (Map.delete.go.nodes a 0 n lft rgt key) =
     (Map.nodes a (Map.delete.go a n lft key) rgt)
   (Map.delete.go.nodes a 1 n lft rgt key) =
     (Map.nodes a lft (Map.delete.go a n rgt key))
 
-(Map.set a:Type tree:(Map a) key:U32 val:a) : (Map a)
+(Map.set a:Type tree:(Map a) key:U60 val:a) : (Map a)
 (Map.set a tree key val) = (Map.set.go a 32 tree key val)
 
-(Map.set.go a:Type n:U32 tree:(Map a) key:U32 val:a) : (Map a)
+(Map.set.go a:Type n:U60 tree:(Map a) key:U60 val:a) : (Map a)
   (Map.set.go a 0 tree          key val) = (Map.entry a val)
   (Map.set.go a n (Map.empty a) key val) =
     (Map.set.go.empty a (& (>> key (- n 1)) 1) (- n 1) key val)
   (Map.set.go a n (Map.nodes a lft rgt) key val) =
     (Map.empty a)
 
-(Map.set.go.empty a:Type i:U32 n:U32 key:U32 val:a) : (Map a)
+(Map.set.go.empty a:Type i:U60 n:U60 key:U60 val:a) : (Map a)
   (Map.set.go.empty a 0 n key val) =
     (Map.nodes a (Map.set.go a n (Map.empty a) key val) (Map.empty a))
   (Map.set.go.empty a 1 n key val) =
     (Map.nodes a (Map.empty a) (Map.set.go a n (Map.empty a) key val))
 
-(Map.set.go.nodes a:Type i:U32 n:U32 key:U32 lft:(Map a) rgt:(Map a) val:a) : (Map a)
+(Map.set.go.nodes a:Type i:U60 n:U60 key:U60 lft:(Map a) rgt:(Map a) val:a) : (Map a)
   (Map.set.go.nodes a 0 n key lft rgt val) =
     (Map.nodes a (Map.set.go a n lft key val) rgt)
   (Map.set.go.nodes a 1 n key lft rgt val) =
     (Map.nodes a lft (Map.set.go a n rgt key val))
 
-(Map.mut a:Type tree:(Map a) key:U32 f:∀(v:a)a) : (Map a)
+(Map.mut a:Type tree:(Map a) key:U60 f:∀(v:a)a) : (Map a)
 (Map.mut a tree key f) = (Map.mut.go a 32 tree key f)
 
-(Map.mut.go a:Type n:U32 tree:(Map a) key:U32 f:∀(v:a)a) : (Map a)
+(Map.mut.go a:Type n:U60 tree:(Map a) key:U60 f:∀(v:a)a) : (Map a)
   (Map.mut.go a 0 (Map.entry a x) key f) = (Map.entry a (f x))
   (Map.mut.go a 0 tree            key f) = tree
   (Map.mut.go a n (Map.empty a)   key f) =
@@ -293,25 +283,25 @@ String : Type
   (Map.mut.go a n (Map.nodes a lft rgt) key f) =
     (Map.mut.go.nodes a (& (>> key (- n 1)) 1) (- n 1) key lft rgt f)
 
-(Map.mut.go.empty a:Type i:U32 n:U32 key:U32 f:∀(v:a)a) : (Map a)
+(Map.mut.go.empty a:Type i:U60 n:U60 key:U60 f:∀(v:a)a) : (Map a)
   (Map.mut.go.empty a 0 n key f) =
     (Map.nodes a (Map.mut.go a n (Map.empty a) key f) (Map.empty a))
   (Map.mut.go.empty a 1 n key f) =
     (Map.nodes a (Map.empty a) (Map.mut.go a n (Map.empty a) key f))
 
-(Map.mut.go.nodes a:Type i:U32 n:U32 key:U32 lft:(Map a) rgt:(Map a) f:∀(v:a)a) : (Map a)
+(Map.mut.go.nodes a:Type i:U60 n:U60 key:U60 lft:(Map a) rgt:(Map a) f:∀(v:a)a) : (Map a)
   (Map.mut.go.nodes a 0 n key lft rgt f) =
     (Map.nodes a (Map.mut.go a n lft key f) rgt)
   (Map.mut.go.nodes a 1 n key lft rgt f) =
     (Map.nodes a lft (Map.mut.go a n rgt key f))
 
-(Map.to_list a:Type val:(Map a)) : (List (Pair U32 a))
-  (Map.to_list a val) = ((Map.to_list.go a val 0) (List.nil (Pair U32 a)))
+(Map.to_list a:Type val:(Map a)) : (List (Pair U60 a))
+  (Map.to_list a val) = ((Map.to_list.go a val 0) (List.nil (Pair U60 a)))
 
-(Map.to_list.go a:Type val:(Map a) key:U32) : ∀(x:(List (Pair U32 a)))(List (Pair U32 a))
+(Map.to_list.go a:Type val:(Map a) key:U60) : ∀(x:(List (Pair U60 a)))(List (Pair U60 a))
   (Map.to_list.go a (Map.empty a)     key) = λx x
   (Map.to_list.go a (Map.entry a val) key) = λx
-    (List.cons (Pair U32 a) (Pair.new U32 a key val) x)
+    (List.cons (Pair U60 a) (Pair.new U60 a key val) x)
   (Map.to_list.go a (Map.nodes a lft rgt) key) = λx
     ((Map.to_list.go a lft (* key 2)) ((Map.to_list.go a rgt (+ (* key 2) 1)) x))
 
@@ -343,19 +333,19 @@ Code : Type
   let is_symbol = (| (== '_' chr) (== '.' chr))
   (| is_letter (| is_number is_symbol))
 
-(Char.is_upper chr:Char) : U32
+(Char.is_upper chr:Char) : U60
 (Char.is_upper chr) =
   (& (<= 'A' chr) (<= chr 'Z'))
 
-(Char.is_lower chr:Char) : U32
+(Char.is_lower chr:Char) : U60
 (Char.is_lower chr) =
   (& (<= 'a' chr) (<= chr 'z'))
 
-(Char.is_numeric chr:Char) : U32
+(Char.is_numeric chr:Char) : U60
 (Char.is_numeric chr) =
   (& (<= '0' chr) (<= '9' chr))
 
-(Parser.is_operator chr:Char) : U32
+(Parser.is_operator chr:Char) : U60
   (Parser.is_operator chr) =
     (| (== '+' chr)
     (| (== '-' chr)
@@ -381,15 +371,15 @@ Code : Type
 (Parser.done a:Type value:a) : (Parser a)
   (Parser.done a value) = λcode (Answer.parsed a code value)
 
-(Char.is_space chr:Char) : U32
+(Char.is_space chr:Char) : U60
   (Char.is_space chr) = (| (== 10 chr) (== 32 chr))
 
-(Parser.parse_one) : (Parser U32)
+(Parser.parse_one) : (Parser U60)
   (Parser.parse_one) = λcode (Parser.parse_one.go code)
 
-(Parser.parse_one.go code:String) : (Answer U32)
-  (Parser.parse_one.go (String.cons x xs)) = (Answer.parsed U32 xs x)
-  (Parser.parse_one.go String.nil)         = (Answer.parsed U32 String.nil 0)
+(Parser.parse_one.go code:String) : (Answer U60)
+  (Parser.parse_one.go (String.cons x xs)) = (Answer.parsed U60 xs x)
+  (Parser.parse_one.go String.nil)         = (Answer.parsed U60 String.nil 0)
 
 (Parser.get_name) : ∀(code: Code)(Pair String String)
   (Parser.get_name) = λcode (Parser.get_name.go code)
@@ -398,36 +388,36 @@ Code : Type
   (Parser.get_name.go String.nil)              = (Pair.new String String String.nil String.nil)
   (Parser.get_name.go (String.cons head tail)) = (Parser.get_name.go_1 (Parser.is_name_char head) head tail)
 
-(Parser.get_name.go_1 cond:U32 head:Char tail:String) : (Pair String String)
+(Parser.get_name.go_1 cond:U60 head:Char tail:String) : (Pair String String)
   (Parser.get_name.go_1 0 head tail) = (Pair.new String String (String.cons head tail) String.nil)
   (Parser.get_name.go_1 1 head tail) = (Parser.get_name.go_2 head (Parser.get_name.go tail))
 
 (Parser.get_name.go_2 head:Char name_pair:(Pair String String)) : (Pair String String)
   (Parser.get_name.go_2 head (Pair.new Code String code name)) = (Pair.new Code String code (String.cons head name))
 
-(Parser.matcher consume:Bool text:(List (∀(x:Char)U32))) : (Parser Bool)
+(Parser.matcher consume:Bool text:(List (∀(x:Char)U60))) : (Parser Bool)
   (Parser.matcher consume text) = λcode (Parser.matcher.go text code consume λx(x))
 
-(Parser.matcher.go text:(List (∀(x:Char)U32)) code:Code consume:Bool redo:(∀(x:String)Code)) : (Answer Bool)
-  (Parser.matcher.go (List.nil  (∀(x:Char)U32))      ys             consume redo) = (Answer.parsed Bool ((Bool.if ∀(x:String)String consume λx(x) redo) ys) Bool.true)
-  (Parser.matcher.go (List.cons (∀(x:Char)U32) x xs) String.nil         consume redo) = (Answer.parsed Bool (redo String.nil) Bool.false)
-  (Parser.matcher.go (List.cons (∀(x:Char)U32) x xs) (String.cons y ys) consume redo) = (Parser.matcher.go.test (x y) xs y ys consume redo)
+(Parser.matcher.go text:(List (∀(x:Char)U60)) code:Code consume:Bool redo:(∀(x:String)Code)) : (Answer Bool)
+  (Parser.matcher.go (List.nil  (∀(x:Char)U60))      ys             consume redo) = (Answer.parsed Bool ((Bool.if ∀(x:String)String consume λx(x) redo) ys) Bool.true)
+  (Parser.matcher.go (List.cons (∀(x:Char)U60) x xs) String.nil         consume redo) = (Answer.parsed Bool (redo String.nil) Bool.false)
+  (Parser.matcher.go (List.cons (∀(x:Char)U60) x xs) (String.cons y ys) consume redo) = (Parser.matcher.go.test (x y) xs y ys consume redo)
 
-(Parser.matcher.go.test cond:U32 xs:(List (∀(x:Char)U32)) y:Char ys:String consume:Bool redo:(∀(x:String)Code)) : (Answer Bool)
+(Parser.matcher.go.test cond:U60 xs:(List (∀(x:Char)U60)) y:Char ys:String consume:Bool redo:(∀(x:String)Code)) : (Answer Bool)
   (Parser.matcher.go.test 0 xs y ys consume redo) = (Answer.parsed Bool (redo (String.cons y ys)) Bool.false)
   (Parser.matcher.go.test 1 xs y ys consume redo) = (Parser.matcher.go xs ys consume λk(redo (String.cons y k)))
 
-(Parser.text_comparer str:String) : (List ∀(c:Char)U32)
-  (Parser.text_comparer String.nil)         = (List.nil  ∀(c:Char)U32)
-  (Parser.text_comparer (String.cons x xs)) = (List.cons ∀(c:Char)U32 λc(== x c) (Parser.text_comparer xs))
+(Parser.text_comparer str:String) : (List ∀(c:Char)U60)
+  (Parser.text_comparer String.nil)         = (List.nil  ∀(c:Char)U60)
+  (Parser.text_comparer (String.cons x xs)) = (List.cons ∀(c:Char)U60 λc(== x c) (Parser.text_comparer xs))
 
-(Parser.peek_conds conds:(List (∀(x:Char)U32))) : (Parser Bool)
+(Parser.peek_conds conds:(List (∀(x:Char)U60))) : (Parser Bool)
   (Parser.peek_conds conds) = λcode ((Parser.matcher Bool.false conds) (Parser.skipper code))
 
 (Parser.peek_text text:String) : (Parser Bool)
   (Parser.peek_text text) = λcode ((Parser.matcher Bool.false (Parser.text_comparer text)) (Parser.skipper code))
 
-(Parser.match_conds conds:(List (∀(x:Char)U32))) : (Parser Bool)
+(Parser.match_conds conds:(List (∀(x:Char)U60))) : (Parser Bool)
   (Parser.match_conds conds) = λcode ((Parser.matcher Bool.true conds) (Parser.skipper code))
 
 (Parser.match_text_here text:String) : (Parser Bool)
@@ -452,7 +442,7 @@ Code : Type
   (Parser.skipper String.nil)         = String.nil
   (Parser.skipper (String.cons x xs)) = (Parser.skipper.go (Char.is_space x) (== x 47) x xs)
 
-(Parser.skipper.go is_space:U32 is_slash:U32 x:Char xs:String): String
+(Parser.skipper.go is_space:U60 is_slash:U60 x:Char xs:String): String
   (Parser.skipper.go 0 0 x xs) = (String.cons x xs)
   (Parser.skipper.go 1 c x xs) = (Parser.skipper xs)
   (Parser.skipper.go s 1 x xs) = (Parser.skipper.drop_comment xs)
@@ -461,7 +451,7 @@ Code : Type
   (Parser.skipper.drop_comment String.nil)         = String.nil
   (Parser.skipper.drop_comment (String.cons x xs)) = (Parser.skipper.drop_comment.go (== x 10) x xs) 
 
-(Parser.skipper.drop_comment.go is_space:U32 x:Char xs:String): String
+(Parser.skipper.drop_comment.go is_space:U60 x:Char xs:String): String
   (Parser.skipper.drop_comment.go 1 x xs) = (Parser.skipper xs)
   (Parser.skipper.drop_comment.go 0 x xs) = (Parser.skipper.drop_comment xs)
 
@@ -543,14 +533,14 @@ Term : Type
   (Term.rfl expr:Term)                               : Term
   (Term.app f:Term x:Term)                           : Term
   (Term.var name:Name)                               : Term
-  (Term.n32 value:U32)                               : Term
+  (Term.n32 value:U60)                               : Term
   (Term.u32)                                         : Term
   (Term.all name:Name type:Term body:Term)           : Term
   (Term.gol name:Name)                               : Term
   (Term.typ)                                         : Term
   (Term.ann expr:Term type:Term)                     : Term
-  (Term.hol hash:U32)                                : Term     
-  (Term.use name:Name numb:U32)                      : Term
+  (Term.hol hash:U60)                                : Term     
+  (Term.use name:Name numb:U60)                      : Term
   (Term.eql val0:Term val1:Term)                     : Term
   (Term.rwt name:Name witn:Term goal:Term expr:Term) : Term
   (Term.arg name:Name expr:Term)                     : Term
@@ -582,20 +572,20 @@ Term : Type
   (Parser.parse_var.0 String.nil)   = (Parser.done _ (Maybe.none Term))
   (Parser.parse_var.0 (String.cons x xs)) = (Parser.parse_var.1
     (String.equal (String.cons x xs) "Type")
-    (String.equal (String.cons x xs) "U32")
+    (String.equal (String.cons x xs) "U60")
     (Char.is_upper x)
     (Char.is_numeric x)
     (String.cons x xs))
 
-(Parser.parse_var.1 a:U32 b:U32 c:U32 d:U32 str:String) : (Parser (Maybe Term))
+(Parser.parse_var.1 a:U60 b:U60 c:U60 d:U60 str:String) : (Parser (Maybe Term))
   (Parser.parse_var.1 1 b c d str) = (Parser.done (Maybe Term) (Maybe.some Term Term.typ))
   (Parser.parse_var.1 a 1 c d str) = (Parser.done (Maybe Term) (Maybe.some Term Term.u32))
   (Parser.parse_var.1 a b 1 d str) = (Parser.done (Maybe Term) (Maybe.some Term (Term.cts (Name.make str) (List.nil Term))))
-  (Parser.parse_var.1 a b c 1 str) = (Parser.done (Maybe Term) (Maybe.some Term (Term.n32 (U32.read str))))
+  (Parser.parse_var.1 a b c 1 str) = (Parser.done (Maybe Term) (Maybe.some Term (Term.n32 (U60.read str))))
   (Parser.parse_var.1 a b c d str) =
-    (Parser.bind Bool (Maybe Term) (Parser.match_text ":") (λis_ann (Parser.parse_var.2 (Bool.if U32 is_ann 1 0) str)))
+    (Parser.bind Bool (Maybe Term) (Parser.match_text ":") (λis_ann (Parser.parse_var.2 (Bool.if U60 is_ann 1 0) str)))
 
-(Parser.parse_var.2 i:U32 str:String) : (Parser (Maybe Term))
+(Parser.parse_var.2 i:U60 str:String) : (Parser (Maybe Term))
   (Parser.parse_var.2 0 str) = (Parser.done (Maybe Term) (Maybe.some Term (Term.var (Name.make str))))
   (Parser.parse_var.2 1 str) =
     (Parser.bind Term (Maybe Term) Parser.parse_term λterm (Parser.done (Maybe Term) (Maybe.some Term (Term.ann (Term.var (Name.make str)) term))))
@@ -681,14 +671,14 @@ Term : Type
 
 (Parser.parse_chr) : (Parser (Maybe Term))
 (Parser.parse_chr) = (Parser.guard Term (Parser.match_text "'")
-  (Parser.bind U32 Term (Parser.parse_one)             λchr
+  (Parser.bind U60 Term (Parser.parse_one)             λchr
   (Parser.bind Unit Term (Parser.parse_text "with") λskip
   (Parser.done Term (Term.n32 chr)))))
 
 (Parser.parse_o32) : (Parser (Maybe Term))
-  (Parser.parse_o32) = (Parser.guard Term (Parser.peek_conds (List.cons ∀(x:Char)U32 λx(== x '(')
-                                                             (List.cons ∀(x:Char)U32 λx(Parser.is_operator x)
-                                                             (List.nil  ∀(x:Char)U32))))
+  (Parser.parse_o32) = (Parser.guard Term (Parser.peek_conds (List.cons ∀(x:Char)U60 λx(== x '(')
+                                                             (List.cons ∀(x:Char)U60 λx(Parser.is_operator x)
+                                                             (List.nil  ∀(x:Char)U60))))
     (Parser.bind Unit Term (Parser.parse_text "(") λskip
     (Parser.bind Op Term (Parser.parse_oper)               λoper
     (Parser.bind Term Term (Parser.parse_term)             λval0
@@ -697,9 +687,9 @@ Term : Type
     (Parser.done Term (Term.o32 oper val0 val1))))))))
 
 (Parser.parse_cts) : (Parser (Maybe Term))
-  (Parser.parse_cts) = (Parser.guard Term (Parser.peek_conds (List.cons ∀(x:Char)U32 λx(== x '(')
-                                                             (List.cons ∀(x:Char)U32 λx(Char.is_upper x)
-                                                             (List.nil  ∀(x:Char)U32))))
+  (Parser.parse_cts) = (Parser.guard Term (Parser.peek_conds (List.cons ∀(x:Char)U60 λx(== x '(')
+                                                             (List.cons ∀(x:Char)U60 λx(Char.is_upper x)
+                                                             (List.nil  ∀(x:Char)U60))))
     (Parser.bind Unit Term (Parser.parse_text "(")                                                    λskip
     (Parser.bind String Term (Parser.parse_name)                                                              λname
     (Parser.bind (List Term) Term (Parser.parse_until Term (Parser.match_text ")") Parser.parse_term) λargs
@@ -730,12 +720,12 @@ Term : Type
 
 (Parser.parse_str) : (Parser (Maybe Term))
 (Parser.parse_str) = (Parser.guard Term (Parser.match_text (String.cons '"' String.nil))
-  (Parser.bind (List U32) Term (Parser.parse_until U32 (Parser.match_text (String.cons '"' String.nil)) Parser.parse_one) λchars
+  (Parser.bind (List U60) Term (Parser.parse_until U60 (Parser.match_text (String.cons '"' String.nil)) Parser.parse_one) λchars
   (Parser.done Term (Parser.parse_str_make chars))))
 
-(Parser.parse_str_make chars:(List U32)) : Term
-  (Parser.parse_str_make (List.cons U32 x xs)) = (Term.cts (Name.make "String.cons") (List.cons Term  (Term.n32 x) (List.cons Term (Parser.parse_str_make xs) (List.nil Term))))
-  (Parser.parse_str_make (List.nil U32))       = (Term.cts (Name.make "String.nil") (List.nil Term))
+(Parser.parse_str_make chars:(List U60)) : Term
+  (Parser.parse_str_make (List.cons U60 x xs)) = (Term.cts (Name.make "String.cons") (List.cons Term  (Term.n32 x) (List.cons Term (Parser.parse_str_make xs) (List.nil Term))))
+  (Parser.parse_str_make (List.nil U60))       = (Term.cts (Name.make "String.nil") (List.nil Term))
 
 (Parser.parse_term) : (Parser Term)
 (Parser.parse_term) =
@@ -815,7 +805,7 @@ File : Type
   (File.read.got (Answer.failed (List Decl) err))        = (Result.err File String (String.concat "[ParseError] " err))
 
 (Term.def Name Term Term) : Term
-(Term.def nm val (Term.var name))                = (U32.if Term (Name.equal name nm) val (Term.var name))
+(Term.def nm val (Term.var name))                = (U60.if Term (Name.equal name nm) val (Term.var name))
 (Term.def nm val (Term.hol hash))                = (Term.hol hash)
 (Term.def nm val Term.typ)                       = Term.typ
 (Term.def nm val Term.u32)                       = Term.u32
@@ -839,7 +829,7 @@ File : Type
 (Term.def.body nm:Name val:Term name:Name body:Term) : Term
   (Term.def.body nm val name body) = (Term.def.body.go (Name.equal nm name) nm val body)
 
-(Term.def.body.go i:U32 nm:Name val:Term body:Term) : Term
+(Term.def.body.go i:U60 nm:Name val:Term body:Term) : Term
   (Term.def.body.go 0 nm val body) = (Term.def nm val body)
   (Term.def.body.go 1 nm val body) = body
   
@@ -919,12 +909,12 @@ File : Type
     (Pair.get (Map Func) (Maybe Func) (Pair File (Maybe Func)) (Map.get Func funs (Name.get_hash ctid)) λfuns λgot
     (Pair.new File (Maybe Func) (File.new funs) got))
 
-(File.is_ctr file:File ctid:Name) : U32
+(File.is_ctr file:File ctid:Name) : U60
 (File.is_ctr (File.new funs) ctid) =
-  (Pair.get (Map Func) (Maybe Func) U32 (Map.get Func funs (Name.get_hash ctid)) λfuns λgot
-  (Maybe.case Func U32 got 1 λfunc(File.is_ctr.func func)))
+  (Pair.get (Map Func) (Maybe Func) U60 (Map.get Func funs (Name.get_hash ctid)) λfuns λgot
+  (Maybe.case Func U60 got 1 λfunc(File.is_ctr.func func)))
 
-(File.is_ctr.func func:Func) : U32
+(File.is_ctr.func func:Func) : U60
   (File.is_ctr.func (Func.new lty rty Rule.end))                 = 1
   (File.is_ctr.func (Func.new lty rty (Rule.new lhs rhs rules))) = 0
 
@@ -937,8 +927,8 @@ File : Type
 
 (Term.show.go term:Term file:File) : ∀(x:String)String
   (Term.show.go (Term.var name) file) = λx((String.show.go (Name.get_string name)) x)
-  (Term.show.go (Term.use name uses) file) = λx((String.show.go "$") ((String.show.go (Name.get_string name)) x))
-  (Term.show.go (Term.hol hash) file) = λx((String.show.go "_") ((String.show.go (U32.show (hash))) x))
+  (Term.show.go (Term.use name uses) file) = λx((String.show.go (Name.get_string name)) x)
+  (Term.show.go (Term.hol hash) file) = λx((String.show.go "_") ((String.show.go (U60.show (hash))) x))
   (Term.show.go (Term.let name expr body) file) = 
     λx((String.show.go "let ")
       ((String.show.go (Name.get_string name))
@@ -958,10 +948,10 @@ File : Type
     λx((String.show.go "Type")
       x)
   (Term.show.go Term.u32 file) =
-    λx((String.show.go "U32")
+    λx((String.show.go "U60")
       x)
   (Term.show.go (Term.n32 numb) file) =
-    λx((String.show.go (U32.show numb))
+    λx((String.show.go (U60.show numb))
       x)
   (Term.show.go (Term.o32 oper val0 val1) file) =
     λx((String.show.go "(")
@@ -1080,7 +1070,6 @@ File : Type
       ((Context.show.go rest file)
       z))))))
 
-
 (File.show file:File) : String
   (File.show file) = ((File.show.go (Map.values Func (File.get_funcs file)) file) "")
 
@@ -1106,12 +1095,11 @@ File : Type
       ((Rules.show.go rules file)
       x)))))
 
-
 // Evaluation
 // ----------
 
 // Counts free occurrences of a name
-(Uses name:Name term:Term) : U32
+(Uses name:Name term:Term) : U60
   (Uses nm (Term.var name))                = (Name.equal name nm)
   (Uses nm (Term.use name numb))           = (Name.equal name nm)
   (Uses nm (Term.hol hash))                = 0
@@ -1130,15 +1118,15 @@ File : Type
   (Uses nm (Term.rfl expr))                = (Uses nm expr)
   (Uses nm (Term.rwt name witn goal expr)) = (+ (Uses nm witn) (+ (Uses.shadow (Name.equal nm name) nm goal) (Uses nm expr)))
 
-(Uses.many name:Name list:(List Term)) : U32
+(Uses.many name:Name list:(List Term)) : U60
   (Uses.many nm (List.nil Term))                = 0
   (Uses.many nm (List.cons Term x xs))          = (+ (Uses nm x) (Uses.many nm xs))
   
-(Uses.shadow cond:U32 name:Name body:Term) : U32
+(Uses.shadow cond:U60 name:Name body:Term) : U60
   (Uses.shadow 0 nm body)             = (Uses nm body)
   (Uses.shadow 1 nm body)             = 0
 
-(Clone a:Type n:U32 name:Name term:a ctx:(List (Pair Name a))) : (List (Pair Name a))
+(Clone a:Type n:U60 name:Name term:a ctx:(List (Pair Name a))) : (List (Pair Name a))
   (Clone a 0 name term ctx) = ctx
   (Clone a 1 name term ctx) = (List.cons (Pair Name a) (Pair.new Name a name term) ctx)
   (Clone a n name term ctx) = (List.cons (Pair Name a) (Pair.new Name a name term) (Clone a (- n 1) name term ctx))
@@ -1147,174 +1135,177 @@ File : Type
   (CloneFor a body name term ctx) = (Clone a (Uses name body) name term ctx)
 
 HTerm : Type
-  (HTerm.lev name:Name numb:U32)                         : HTerm
+  (HTerm.lev name:Name numb:U60)                         : HTerm
   (HTerm.let expr:HTerm body:HTerm)                      : HTerm
-  (HTerm.cts ctid:U32 args:(List HTerm))                 : HTerm
+  (HTerm.cts ctid:U60 args:(List HTerm))                 : HTerm
   (HTerm.o32 op:Op val0:HTerm val1:HTerm)                : HTerm
   (HTerm.lam body:∀(x:HTerm)HTerm)                       : HTerm
   (HTerm.rfl expr:HTerm)                                 : HTerm
   (HTerm.app func:HTerm argm:HTerm)                      : HTerm
   (HTerm.var name:Name)                                  : HTerm
-  (HTerm.n32 value:U32)                                  : HTerm
+  (HTerm.n32 value:U60)                                  : HTerm
   (HTerm.u32)                                            : HTerm
   (HTerm.all type:HTerm body:HTerm)                      : HTerm
   (HTerm.gol name:Name)                                  : HTerm
   (HTerm.typ)                                            : HTerm
   (HTerm.ann expr:HTerm type:HTerm)                      : HTerm
   (HTerm.hol hash:Name)                                  : HTerm     
-  (HTerm.use name:Name numb:U32)                         : HTerm
+  (HTerm.use name:Name numb:U60)                         : HTerm
   (HTerm.eql val0:HTerm val1:HTerm)                      : HTerm
   (HTerm.rwt name:Name witn:HTerm goal:HTerm expr:HTerm) : HTerm
 
 VarPair : Type
 VarPair = (Pair String HTerm)
 
-(High file:File term:Term vars:(List VarPair)) : HTerm
-  (High file term vars) = (Triple.get File (List VarPair) HTerm HTerm (High.go term file vars) λfile λvars λterm term)
+//(High file:File term:Term vars:(List VarPair)) : HTerm
+  //(High file term vars) = (Triple.get File (List VarPair) HTerm HTerm (High.go term file vars) λfile λvars λterm term)
 
-(High.go term:Term file:File vars:(List VarPair)) : (Triple File (List VarPair) HTerm)
-  (High.go (Term.var name) file vars) = (HighFind name file vars)
+//(High.go term:Term file:File vars:(List VarPair)) : (Triple File (List VarPair) HTerm)
+  //(High.go (Term.var name) file vars) = (HighFind name file vars)
 
-(HighFind name:Name file:File list:(List VarPair)) : (Triple File (List VarPair) HTerm) 
-  (HighFind name file (List.nil VarPair)) = (Triple.new File (List VarPair) HTerm file (List.nil VarPair) (HTerm.var name))
-  // (HighFind name file (List.cons VarPair (Pair.new String HTerm var val) vars)) = (HighFound (Name.equal name var) name var val file vars)
+//(HighFind name:Name file:File list:(List VarPair)) : (Triple File (List VarPair) HTerm) 
+  //(HighFind name file (List.nil VarPair)) = (Triple.new File (List VarPair) HTerm file (List.nil VarPair) (HTerm.var name))
+  //// (HighFind name file (List.cons VarPair (Pair.new String HTerm var val) vars)) = (HighFound (Name.equal name var) name var val file vars)
 
-  (HighFound cond:U32 name:Name var:String val:HTerm file:File vars:(List VarPair)) : (Triple File (List VarPair) HTerm)
-    (HighFound 1 name var val file vars) = (Triple.new File (List VarPair) HTerm file vars val)
-    // (HighFound 0 name var val file vars) =
-      // (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (HighFind name file vars) λfile λvars λgot
-      // (Triple.new File (List VarPair) HTerm file (List.cons VarPair (Pair var val) vars) got))
+  //(HighFound cond:U60 name:Name var:String val:HTerm file:File vars:(List VarPair)) : (Triple File (List VarPair) HTerm)
+    //(HighFound 1 name var val file vars) = (Triple.new File (List VarPair) HTerm file vars val)
+    //// (HighFound 0 name var val file vars) =
+      //// (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (HighFind name file vars) λfile λvars λgot
+      //// (Triple.new File (List VarPair) HTerm file (List.cons VarPair (Pair var val) vars) got))
 
-  (High.go (Term.use name count) file vars) =
-    (High.go (Term.var name) file vars)
+  //(High.go (Term.use name count) file vars) =
+    //(High.go (Term.var name) file vars)
 
-  (High.go (Term.ann xval xtyp) file vars) =
-    (High.go xval file vars)
+  //(High.go (Term.ann xval xtyp) file vars) =
+    //(High.go xval file vars)
 
-  (High.go Term.typ file vars) =
-    (Triple.new File (List VarPair) HTerm file vars HTerm.typ)
+  //(High.go Term.typ file vars) =
+    //(Triple.new File (List VarPair) HTerm file vars HTerm.typ)
 
-  (High.go Term.u32 file vars) =
-    (Triple.new File (List VarPair) HTerm file vars HTerm.u32)
+  //(High.go Term.u32 file vars) =
+    //(Triple.new File (List VarPair) HTerm file vars HTerm.u32)
 
-  (High.go (Term.n32 numb) file vars) =
-    (Triple.new File (List VarPair) HTerm file vars (HTerm.n32 numb))
+  //(High.go (Term.n32 numb) file vars) =
+    //(Triple.new File (List VarPair) HTerm file vars (HTerm.n32 numb))
 
-  (High.go (Term.o32 oper val0 val1) file vars) =
-    (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go val0 file vars) λfile λvars λval0
-    (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go val1 file vars) λfile λvars λval1
-    (Triple.new File (List VarPair) HTerm file vars (HTerm.o32 oper val0 val1))))
+  //(High.go (Term.o32 oper val0 val1) file vars) =
+    //(Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go val0 file vars) λfile λvars λval0
+    //(Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go val1 file vars) λfile λvars λval1
+    //(Triple.new File (List VarPair) HTerm file vars (HTerm.o32 oper val0 val1))))
 
-  (High.go (Term.gol name) file vars) =
-    (Triple.new File (List VarPair) HTerm file vars (HTerm.gol name))
+  //(High.go (Term.gol name) file vars) =
+    //(Triple.new File (List VarPair) HTerm file vars (HTerm.gol name))
 
-  // TODO: can't infer lambda
-  // (High.go (Term.all name type body) file vars) =
-    // (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go type file vars) λfile λvars λtype
-    // (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go body file (CloneFor HTerm body name λhigh_x vars)) λfile λvars λbody
-    // (Triple.new File (List VarPair) HTerm file vars (HTerm.all type λhigh_x body))))
+  //// TODO: can't infer lambda
+  //// (High.go (Term.all name type body) file vars) =
+    //// (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go type file vars) λfile λvars λtype
+    //// (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go body file (CloneFor HTerm body name λhigh_x vars)) λfile λvars λbody
+    //// (Triple.new File (List VarPair) HTerm file vars (HTerm.all type λhigh_x body))))
 
-  // FIXME: ?
-  // (High.go (Term.let name expr body) file vars) =
-  //   (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go expr file vars) λfile λvars λexpr
-  //   (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go body file (CloneFor HTerm body name expr vars)) λfile λvars λbody
-  //   (Triple.new File (List VarPair) HTerm file vars body)))
+  //// FIXME: ?
+  //// (High.go (Term.let name expr body) file vars) =
+  ////   (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go expr file vars) λfile λvars λexpr
+  ////   (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go body file (CloneFor HTerm body name expr vars)) λfile λvars λbody
+  ////   (Triple.new File (List VarPair) HTerm file vars body)))
 
-  (High.go (Term.app func argm) file vars) =
-    (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go func file vars) λfile λvars λfunc
-    (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go argm file vars) λfile λvars λargm
-    (Triple.new File (List VarPair) HTerm file vars (HApply func argm))))
+  //(High.go (Term.app func argm) file vars) =
+    //(Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go func file vars) λfile λvars λfunc
+    //(Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go argm file vars) λfile λvars λargm
+    //(Triple.new File (List VarPair) HTerm file vars (HApply func argm))))
     
-  // TODO: waiting for High.go.many
-  // (High.go (Term.cts ctid args) file vars) =
-    // (Pair.get File (Maybe Func) (Pair File (Maybe Func)) (File.got_func file ctid)     λfile λfunc
-    // (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go.many args file vars) λfile λvars λargs
-    // (High.go.cts func (HTerm.cts ctid args) file vars)))
+  //// TODO: waiting for High.go.many
+  //// (High.go (Term.cts ctid args) file vars) =
+    //// (Pair.get File (Maybe Func) (Pair File (Maybe Func)) (File.got_func file ctid)     λfile λfunc
+    //// (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go.many args file vars) λfile λvars λargs
+    //// (High.go.cts func (HTerm.cts ctid args) file vars)))
 
 
-  (High.go (Term.arg name expr) file vars) = 
-    (High.go expr file vars)
+  //(High.go (Term.arg name expr) file vars) = 
+    //(High.go expr file vars)
 
 
-  (High.go (Term.eql val0 val1) file vars) =
-    (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go val0 file vars) λfile λvars λval0
-    (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go val1 file vars) λfile λvars λval1
-    (Triple.new File (List VarPair) HTerm file vars (HTerm.eql val0 val1))))
+  //(High.go (Term.eql val0 val1) file vars) =
+    //(Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go val0 file vars) λfile λvars λval0
+    //(Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go val1 file vars) λfile λvars λval1
+    //(Triple.new File (List VarPair) HTerm file vars (HTerm.eql val0 val1))))
 
-  (High.go (Term.rfl expr) file vars) =
-    (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go expr file vars) λfile λvars λexpr
-    (Triple.new File (List VarPair) HTerm file vars (HTerm.rfl expr)))
+  //(High.go (Term.rfl expr) file vars) =
+    //(Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go expr file vars) λfile λvars λexpr
+    //(Triple.new File (List VarPair) HTerm file vars (HTerm.rfl expr)))
 
-  (High.go (Term.rwt name witn goal expr) file vars) =
-    (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go expr file vars) λfile λvars λexpr
-    (Triple.new File (List VarPair) HTerm file vars expr))
+  //(High.go (Term.rwt name witn goal expr) file vars) =
+    //(Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go expr file vars) λfile λvars λexpr
+    //(Triple.new File (List VarPair) HTerm file vars expr))
 
 
-(High.go.many xs:(List Term) file:File vars:(List VarPair)) : (Triple File (List VarPair) (List Term))
-  // (High.go.many (List.nil) file vars) =
-  //   (Triple.new File (List VarPair) (List Term) file vars (List.nil Term))
-  // (High.go.many (List.cons Term x xs) file vars) =
-  //   (Triple.get File (List VarPair) HTerm (High.go x file vars) λfile λvars λx
-  //   (Triple.get _ _ _ (Triple File (List VarPair) Term) (High.go.many xs file vars) λfile λvars λxs
-  //   (Triple.new File (List VarPair) Term file vars (List.cons Term x xs))))
+//(High.go.many xs:(List Term) file:File vars:(List VarPair)) : (Triple File (List VarPair) (List Term))
+  //// (High.go.many (List.nil) file vars) =
+  ////   (Triple.new File (List VarPair) (List Term) file vars (List.nil Term))
+  //// (High.go.many (List.cons Term x xs) file vars) =
+  ////   (Triple.get File (List VarPair) HTerm (High.go x file vars) λfile λvars λx
+  ////   (Triple.get _ _ _ (Triple File (List VarPair) Term) (High.go.many xs file vars) λfile λvars λxs
+  ////   (Triple.new File (List VarPair) Term file vars (List.cons Term x xs))))
 
-   (High.go (Term.hol hash) file vars) =
-    (Triple.new File (List VarPair) HTerm file vars (HTerm.hol hash))
+   //(High.go (Term.hol hash) file vars) =
+    //(Triple.new File (List VarPair) HTerm file vars (HTerm.hol hash))
 
-(High.go.cts func:(Maybe Func) term:HTerm file:File vars:(List VarPair)) : (Triple File (List VarPair) HTerm)
-  (High.go.cts (Maybe.none Func) term file vars)                          = (Triple.new File (List VarPair) HTerm file vars term)
-  (High.go.cts (Maybe.some Func (Func.new lty rty rules)) term file vars) = (HFindMatchingRule rules term file vars)
+//(High.go.cts func:(Maybe Func) term:HTerm file:File vars:(List VarPair)) : (Triple File (List VarPair) HTerm)
+  //(High.go.cts (Maybe.none Func) term file vars)                          = (Triple.new File (List VarPair) HTerm file vars term)
+  //(High.go.cts (Maybe.some Func (Func.new lty rty rules)) term file vars) = (HFindMatchingRule rules term file vars)
 
-// TODO: perhaps linearize term?
-(HFindMatchingRule rule:Rule term:HTerm file:File vars:(List VarPair)) : (Triple File (List VarPair) HTerm)
-  (HFindMatchingRule Rule.end term file vars) = (Triple.new File (List VarPair) HTerm file vars term)
-  (HFindMatchingRule (Rule.new lhs rhs rules) term file vars) = (HFindMatchingRule.found (HMatches.go lhs term) rhs rules file vars)
+//// TODO: perhaps linearize term?
+//(HFindMatchingRule rule:Rule term:HTerm file:File vars:(List VarPair)) : (Triple File (List VarPair) HTerm)
+  //(HFindMatchingRule Rule.end term file vars) = (Triple.new File (List VarPair) HTerm file vars term)
+  //(HFindMatchingRule (Rule.new lhs rhs rules) term file vars) = (HFindMatchingRule.found (HMatches.go lhs term) rhs rules file vars)
 
-(HFindMatchingRule.found triple_with_cond:(Triple Term HTerm U32) rhs:Term rules:Rule file:File vars:(List VarPair)) : (Triple File (List VarPair) HTerm)
-  (HFindMatchingRule.found (Triple.new Term HTerm U32 lhs term 0) rhs rules file vars) = (HFindMatchingRule rules term file vars)
-  (HFindMatchingRule.found (Triple.new Term HTerm U32 lhs term 1) rhs rules file vars) = (High.go rhs file ((HMatch.go lhs term) vars))
+//(HFindMatchingRule.found triple_with_cond:(Triple Term HTerm U60) rhs:Term rules:Rule file:File vars:(List VarPair)) : (Triple File (List VarPair) HTerm)
+  //(HFindMatchingRule.found (Triple.new Term HTerm U60 lhs term 0) rhs rules file vars) = (HFindMatchingRule rules term file vars)
+  //(HFindMatchingRule.found (Triple.new Term HTerm U60 lhs term 1) rhs rules file vars) = (High.go rhs file ((HMatch.go lhs term) vars))
 
-// High-Order pattern-matching
+//// High-Order pattern-matching
 
-// Tests if a LHS matches with a HTerm.
-// Returns the reconstructed terms, and 0/1 if not/yes.
-(HMatches x:Term y:HTerm) : (Triple Term HTerm U32)
-  (HMatches x y) = (HMatches.go x y)
-(HMatches.go x:Term y:HTerm) : (Triple Term HTerm U32)
-  (HMatches.go (Term.use a_name uses) b) = (Triple.new Term HTerm U32 (Term.use a_name uses) b 1)
-  (HMatches.go a b) = (Triple.new Term HTerm U32 a b 0)
-  (HMatches.go (Term.n32 x_numb) (HTerm.n32 y_numb)) = (Triple.new Term HTerm U32 (Term.n32 x_numb) (HTerm.n32 y_numb) (== x_numb y_numb))
+//// Tests if a LHS matches with a HTerm.
+//// Returns the reconstructed terms, and 0/1 if not/yes.
+//(HMatches x:Term y:HTerm) : (Triple Term HTerm U60)
+  //(HMatches x y) = (HMatches.go x y)
+//(HMatches.go x:Term y:HTerm) : (Triple Term HTerm U60)
+  //(HMatches.go (Term.use a_name uses) b) = (Triple.new Term HTerm U60 (Term.use a_name uses) b 1)
+  //(HMatches.go a b) = (Triple.new Term HTerm U60 a b 0)
+  //(HMatches.go (Term.n32 x_numb) (HTerm.n32 y_numb)) = (Triple.new Term HTerm U60 (Term.n32 x_numb) (HTerm.n32 y_numb) (== x_numb y_numb))
 
-  // (HMatches.go (Term.cts x.ctid x.args) (HTerm.cts y.ctid y.args)) = (HMatches.go.cts (Name.equal x.ctid y.ctid) x.ctid x.args y.ctid y.args)
+  //// (HMatches.go (Term.cts x.ctid x.args) (HTerm.cts y.ctid y.args)) = (HMatches.go.cts (Name.equal x.ctid y.ctid) x.ctid x.args y.ctid y.args)
 
-  (HMatches.go.cts cond:U32 x_ctid:U32 x_args:(List Term) y_ctid:U32 y_args:(List HTerm)) : (Triple Term HTerm U32)
-  // TODO: thats not supposed to work (?). Term.cts doesnt have a ctid, he has a name instead
-  // (HMatches.go.cts 0 x_ctid x_args y_ctid y_args) = (Triple.new _ _ _  (Term.cts x_ctid x_args) (HTerm.cts y_ctid y_args) 0)
+  //(HMatches.go.cts cond:U60 x_ctid:U60 x_args:(List Term) y_ctid:U60 y_args:(List HTerm)) : (Triple Term HTerm U60)
+  //// TODO: thats not supposed to work (?). Term.cts doesnt have a ctid, he has a name instead
+  //// (HMatches.go.cts 0 x_ctid x_args y_ctid y_args) = (Triple.new _ _ _  (Term.cts x_ctid x_args) (HTerm.cts y_ctid y_args) 0)
 
-    // (HMatches.go.cts 1 x.ctid x.args y.ctid y.args) = (HMatches.go.cts.many x.args y.args 1 x.ctid y.ctid λz(z) λz(z))
-    //   (HMatches.go.cts.many Nil         Nil         m x.ctid y.ctid xs ys) = (Trip (Cts x.ctid (xs Nil)) (HCts y.ctid (ys Nil)) m)
-    //   (HMatches.go.cts.many (Cons a as) (Cons b bs) m x.ctid y.ctid xs ys) =
-    //     (HMatches.chain a b m λaλb(HMatches.go a b) λa λb λm
-    //     (HMatches.go.cts.many as bs m x.ctid y.ctid λk(xs (Cons a k)) λk(ys (Cons b k))))
+    //// (HMatches.go.cts 1 x.ctid x.args y.ctid y.args) = (HMatches.go.cts.many x.args y.args 1 x.ctid y.ctid λz(z) λz(z))
+    ////   (HMatches.go.cts.many Nil         Nil         m x.ctid y.ctid xs ys) = (Trip (Cts x.ctid (xs Nil)) (HCts y.ctid (ys Nil)) m)
+    ////   (HMatches.go.cts.many (Cons a as) (Cons b bs) m x.ctid y.ctid xs ys) =
+    ////     (HMatches.chain a b m λaλb(HMatches.go a b) λa λb λm
+    ////     (HMatches.go.cts.many as bs m x.ctid y.ctid λk(xs (Cons a k)) λk(ys (Cons b k))))
 
-  // (HMatches.chain a b 0 fn cont) = (cont a b 0)
-  // (HMatches.chain a b 1 fn cont) = (Trip.Get (fn a b) cont)
+  //// (HMatches.chain a b 0 fn cont) = (cont a b 0)
+  //// (HMatches.chain a b 1 fn cont) = (Trip.Get (fn a b) cont)
   
-(HMatch x:Term y:HTerm) : (List VarPair)
-  (HMatch x y) = ((HMatch.go x y) (List.nil VarPair))
+//(HMatch x:Term y:HTerm) : (List VarPair)
+  //(HMatch x y) = ((HMatch.go x y) (List.nil VarPair))
 
-// FIXME: finish type annotations
-(HMatch.go x:Term y:HTerm) : ∀(x:(List VarPair))(List VarPair)
-  // (HMatch.go (Term.cts x.ctid x.args) (HTerm.cts y.ctid y.args)) = (HMatch.go.many x.args y.args)
+//// FIXME: finish type annotations
+//(HMatch.go x:Term y:HTerm) : ∀(x:(List VarPair))(List VarPair)
+  //// (HMatch.go (Term.cts x.ctid x.args) (HTerm.cts y.ctid y.args)) = (HMatch.go.many x.args y.args)
 
-  // (HMatch.go.many xs:(List Term) ys:(List Term)) : ∀(x:(List VarPair))(List VarPair)
-  //   (HMatch.go.many (List.cons Term x xs) (List.nil Term)) = λz (z)
-  //   (HMatch.go.many (List.cons Term x xs) (List.cons Term y ys)) = λz ((HMatch.go x y) ((HMatch.go.many xs ys) z))
+  //// (HMatch.go.many xs:(List Term) ys:(List Term)) : ∀(x:(List VarPair))(List VarPair)
+  ////   (HMatch.go.many (List.cons Term x xs) (List.nil Term)) = λz (z)
+  ////   (HMatch.go.many (List.cons Term x xs) (List.cons Term y ys)) = λz ((HMatch.go x y) ((HMatch.go.many xs ys) z))
 
-  // (HMatch.go (Term.use a_name uses) b) = λz (Clone uses a_name b z)
+  //// (HMatch.go (Term.use a_name uses) b) = λz (Clone uses a_name b z)
 
-  (HMatch.go a b) = λz z
+  //(HMatch.go a b) = λz z
 
-(HApply func:HTerm args:HTerm) : HTerm
-  (HApply (HTerm.lam fbody) argm) = (fbody argm)
-  (HApply func         argm) = (HTerm.app func argm)
+//(HApply func:HTerm args:HTerm) : HTerm
+  //(HApply (HTerm.lam fbody) argm) = (fbody argm)
+  //(HApply func         argm) = (HTerm.app func argm)
+
+(Main) : U60
+(Main) = (+ 70 50)
