@@ -1159,46 +1159,46 @@ HTerm : Type
   (HTerm.rwt name:Name witn:HTerm goal:HTerm expr:HTerm) : HTerm
 
 VarPair : Type
-VarPair = (Pair String HTerm)
+VarPair = (Pair Name HTerm)
 
 //(High file:File term:Term vars:(List VarPair)) : HTerm
   //(High file term vars) = (Triple.get File (List VarPair) HTerm HTerm (High.go term file vars) λfile λvars λterm term)
 
-//(High.go term:Term file:File vars:(List VarPair)) : (Triple File (List VarPair) HTerm)
-  //(High.go (Term.var name) file vars) = (HighFind name file vars)
+(High.go term:Term file:File vars:(List VarPair)) : (Triple File (List VarPair) HTerm)
+  (High.go (Term.var name) file vars) = (HighFind name file vars)
 
-//(HighFind name:Name file:File list:(List VarPair)) : (Triple File (List VarPair) HTerm) 
-  //(HighFind name file (List.nil VarPair)) = (Triple.new File (List VarPair) HTerm file (List.nil VarPair) (HTerm.var name))
-  //// (HighFind name file (List.cons VarPair (Pair.new String HTerm var val) vars)) = (HighFound (Name.equal name var) name var val file vars)
+(HighFind name:Name file:File list:(List VarPair)) : (Triple File (List VarPair) HTerm) 
+  (HighFind name file (List.nil VarPair)) = (Triple.new File (List VarPair) HTerm file (List.nil VarPair) (HTerm.var name))
+  (HighFind name file (List.cons VarPair (Pair.new Name HTerm var val) vars)) = (HighFound (Name.equal name var) name var val file vars)
 
-  //(HighFound cond:U60 name:Name var:String val:HTerm file:File vars:(List VarPair)) : (Triple File (List VarPair) HTerm)
-    //(HighFound 1 name var val file vars) = (Triple.new File (List VarPair) HTerm file vars val)
-    //// (HighFound 0 name var val file vars) =
-      //// (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (HighFind name file vars) λfile λvars λgot
-      //// (Triple.new File (List VarPair) HTerm file (List.cons VarPair (Pair var val) vars) got))
+  (HighFound cond:U60 name:Name var:Name val:HTerm file:File vars:(List VarPair)) : (Triple File (List VarPair) HTerm)
+    (HighFound 1 name var val file vars) = (Triple.new File (List VarPair) HTerm file vars val)
+    (HighFound 0 name var val file vars) =
+      (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (HighFind name file vars) λfile λvars λgot
+      (Triple.new File (List VarPair) HTerm file (List.cons VarPair (Pair.new Name HTerm var val) vars) got))
 
-  //(High.go (Term.use name count) file vars) =
-    //(High.go (Term.var name) file vars)
+  (High.go (Term.use name count) file vars) =
+    (High.go (Term.var name) file vars)
 
-  //(High.go (Term.ann xval xtyp) file vars) =
-    //(High.go xval file vars)
+  (High.go (Term.ann xval xtyp) file vars) =
+    (High.go xval file vars)
 
-  //(High.go Term.typ file vars) =
-    //(Triple.new File (List VarPair) HTerm file vars HTerm.typ)
+  (High.go Term.typ file vars) =
+    (Triple.new File (List VarPair) HTerm file vars HTerm.typ)
 
-  //(High.go Term.u32 file vars) =
-    //(Triple.new File (List VarPair) HTerm file vars HTerm.u32)
+  (High.go Term.u32 file vars) =
+    (Triple.new File (List VarPair) HTerm file vars HTerm.u32)
 
-  //(High.go (Term.n32 numb) file vars) =
-    //(Triple.new File (List VarPair) HTerm file vars (HTerm.n32 numb))
+  (High.go (Term.n32 numb) file vars) =
+    (Triple.new File (List VarPair) HTerm file vars (HTerm.n32 numb))
 
-  //(High.go (Term.o32 oper val0 val1) file vars) =
-    //(Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go val0 file vars) λfile λvars λval0
-    //(Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go val1 file vars) λfile λvars λval1
-    //(Triple.new File (List VarPair) HTerm file vars (HTerm.o32 oper val0 val1))))
+  (High.go (Term.o32 oper val0 val1) file vars) =
+    (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go val0 file vars) λfile λvars λval0
+    (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go val1 file vars) λfile λvars λval1
+    (Triple.new File (List VarPair) HTerm file vars (HTerm.o32 oper val0 val1))))
 
-  //(High.go (Term.gol name) file vars) =
-    //(Triple.new File (List VarPair) HTerm file vars (HTerm.gol name))
+  (High.go (Term.gol name) file vars) =
+    (Triple.new File (List VarPair) HTerm file vars (HTerm.gol name))
 
   //// TODO: can't infer lambda
   //// (High.go (Term.all name type body) file vars) =
@@ -1212,10 +1212,10 @@ VarPair = (Pair String HTerm)
   ////   (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go body file (CloneFor HTerm body name expr vars)) λfile λvars λbody
   ////   (Triple.new File (List VarPair) HTerm file vars body)))
 
-  //(High.go (Term.app func argm) file vars) =
-    //(Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go func file vars) λfile λvars λfunc
-    //(Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go argm file vars) λfile λvars λargm
-    //(Triple.new File (List VarPair) HTerm file vars (HApply func argm))))
+  (High.go (Term.app func argm) file vars) =
+    (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go func file vars) λfile λvars λfunc
+    (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go argm file vars) λfile λvars λargm
+    (Triple.new File (List VarPair) HTerm file vars (HApply func argm))))
     
   //// TODO: waiting for High.go.many
   //// (High.go (Term.cts ctid args) file vars) =
@@ -1224,22 +1224,21 @@ VarPair = (Pair String HTerm)
     //// (High.go.cts func (HTerm.cts ctid args) file vars)))
 
 
-  //(High.go (Term.arg name expr) file vars) = 
-    //(High.go expr file vars)
+  (High.go (Term.arg name expr) file vars) = 
+    (High.go expr file vars)
 
+  (High.go (Term.eql val0 val1) file vars) =
+    (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go val0 file vars) λfile λvars λval0
+    (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go val1 file vars) λfile λvars λval1
+    (Triple.new File (List VarPair) HTerm file vars (HTerm.eql val0 val1))))
 
-  //(High.go (Term.eql val0 val1) file vars) =
-    //(Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go val0 file vars) λfile λvars λval0
-    //(Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go val1 file vars) λfile λvars λval1
-    //(Triple.new File (List VarPair) HTerm file vars (HTerm.eql val0 val1))))
+  (High.go (Term.rfl expr) file vars) =
+    (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go expr file vars) λfile λvars λexpr
+    (Triple.new File (List VarPair) HTerm file vars (HTerm.rfl expr)))
 
-  //(High.go (Term.rfl expr) file vars) =
-    //(Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go expr file vars) λfile λvars λexpr
-    //(Triple.new File (List VarPair) HTerm file vars (HTerm.rfl expr)))
-
-  //(High.go (Term.rwt name witn goal expr) file vars) =
-    //(Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go expr file vars) λfile λvars λexpr
-    //(Triple.new File (List VarPair) HTerm file vars expr))
+  (High.go (Term.rwt name witn goal expr) file vars) =
+    (Triple.get File (List VarPair) HTerm (Triple File (List VarPair) HTerm) (High.go expr file vars) λfile λvars λexpr
+    (Triple.new File (List VarPair) HTerm file vars expr))
 
 
 //(High.go.many xs:(List Term) file:File vars:(List VarPair)) : (Triple File (List VarPair) (List Term))
@@ -1307,8 +1306,8 @@ VarPair = (Pair String HTerm)
 
   //(HMatch.go a b) = λz z
 
-//(HApply func:HTerm args:HTerm) : HTerm
-  //(HApply (HTerm.lam fbody) argm) = (fbody argm)
-  //(HApply func         argm) = (HTerm.app func argm)
+(HApply func:HTerm args:HTerm) : HTerm
+  (HApply (HTerm.lam fbody) argm) = (fbody argm)
+  (HApply func         argm) = (HTerm.app func argm)
 
 
