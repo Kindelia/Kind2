@@ -4,7 +4,7 @@
 // U60
 // ===
 
-(U60.if a:Type cond:U60 if_t:a if_f:a): a
+(U60.if -a:Type cond:U60 if_t:a if_f:a): a
   (U60.if a 0 t f) = f
   (U60.if a 1 t f) = t
 
@@ -46,7 +46,7 @@ Bool: Type
   Bool.true  : Bool
   Bool.false : Bool
 
-(Bool.if a:Type Bool if_t:a if_f:a): a
+(Bool.if -a:Type Bool if_t:a if_f:a): a
   (Bool.if a Bool.false t f) = f
   (Bool.if a Bool.true  t f) = t
 
@@ -54,21 +54,21 @@ Bool: Type
 // ====
 
 (Pair a:Type b:Type): Type
-  (Pair.new a:Type b:Type fst:a snd:b): (Pair a b)
+  (Pair.new -a:Type -b:Type fst:a snd:b): (Pair a b)
 
-(Pair.get a:Type b:Type c:Type p:(Pair a b) f:∀(x:a)∀(y:b)c): c
+(Pair.get -a:Type -b:Type c:Type p:(Pair a b) f:∀(x:a)∀(y:b)c): c
   (Pair.get a b c (Pair.new a b x y) f) = (f x y)
 
-(Pair.fst a:Type b:Type p:(Pair a b)): a
+(Pair.fst -a:Type -b:Type p:(Pair a b)): a
   (Pair.fst a b (Pair.new a b x y)) = x
 
-(Pair.snd a:Type b:Type p:(Pair a b)): b
+(Pair.snd -a:Type -b:Type p:(Pair a b)): b
   (Pair.snd a b (Pair.new a b x y)) = y
 
-(Pair.fst.mut a:Type b:Type p:(Pair a b) f:∀(x:a)a): (Pair a b)
+(Pair.fst.mut -a:Type -b:Type p:(Pair a b) f:∀(x:a)a): (Pair a b)
   (Pair.fst.mut a b (Pair.new a b x y) f) = (Pair.new a b (f x) y)
 
-(Pair.snd.mut a:Type b:Type p:(Pair a b) f:∀(x:b)b): (Pair a b)
+(Pair.snd.mut -a:Type -b:Type p:(Pair a b) f:∀(x:b)b): (Pair a b)
   (Pair.snd.mut a b (Pair.new a b x y) f) = (Pair.new a b x (f y))
 
 
@@ -78,17 +78,17 @@ Bool: Type
 (Triple a:Type b:Type c:Type): Type
   (Triple.new a:Type b:Type c:Type fst:a snd:b trd:c): (Triple a b c)
 
-(Triple.get a:Type b:Type c:Type d:Type t:(Triple a b c) f:∀(x:a)∀(y:b)∀(z:c)d): d
+(Triple.get -a:Type -b:Type -c:Type -d:Type t:(Triple a b c) f:∀(x:a)∀(y:b)∀(z:c)d): d
   (Triple.get a b c d (Triple.new a b c x y z) f) = (f x y z)
 
 // Maybe
 // =====
 
 (Maybe a:Type): Type
-  (Maybe.none a:Type)     : (Maybe a)
-  (Maybe.some a:Type x:a) : (Maybe a)
+  (Maybe.none -a:Type)     : (Maybe a)
+  (Maybe.some -a:Type x:a) : (Maybe a)
 
-(Maybe.case a:Type r:Type m:(Maybe a) none:r some:∀(x:a)r): r
+(Maybe.case -a:Type -r:Type m:(Maybe a) none:r some:∀(x:a)r): r
   (Maybe.case a r (Maybe.some a x) case_none case_some) = (case_some x)
   (Maybe.case a r (Maybe.none a)   case_none case_some) = case_none
 
@@ -96,47 +96,47 @@ Bool: Type
 // ======
 
 (Result t:Type e:Type) : Type
-  (Result.ok t:Type e:Type value:t) : (Result t e)
-  (Result.err t:Type e:Type err:e) : (Result t e)
+  (Result.ok -t:Type -e:Type value:t) : (Result t e)
+  (Result.err -t:Type -e:Type err:e) : (Result t e)
 
 // List
 // ====
 
 (List a:Type): Type
-  (List.nil a:Type)                       : (List a)
-  (List.cons a:Type head:a tail:(List a)) : (List a)
+  (List.nil -a:Type)                       : (List a)
+  (List.cons -a:Type head:a tail:(List a)) : (List a)
 
-(List.map a:Type b:Type l:(List a) f:∀(x:a)b): (List b)
+(List.map -a:Type -b:Type l:(List a) f:∀(x:a)b): (List b)
   (List.map a b (List.nil a) f)            = (List.nil b)
   (List.map a b (List.cons a head tail) f) = (List.cons b (f head) (List.map a b tail f))
 
-(List.reverse a:Type l:(List a)): (List a)
+(List.reverse -a:Type l:(List a)): (List a)
   (List.reverse a l) = (List.reverse.go a l (List.nil a))
 
-(List.reverse.go a:Type l:(List a) r:(List a)): (List a)
+(List.reverse.go -a:Type l:(List a) r:(List a)): (List a)
   (List.reverse.go a (List.nil a)            r) = r
   (List.reverse.go a (List.cons a head tail) r) = (List.reverse.go a tail (List.cons a head r))
 
-(List.length a:Type l:(List a)): U60
+(List.length -a:Type l:(List a)): U60
   (List.length a (List.nil a))            = 0
   (List.length a (List.cons a head tail)) = (+ 1 (List.length a tail))
 
-(List.is_empty a:Type l:(List a)): U60
+(List.is_empty -a:Type l:(List a)): U60
   (List.is_empty a (List.nil a))            = 1
   (List.is_empty a (List.cons a head tail)) = 0
 
-(List.concat a:Type xs:(List a) ys:(List a)): (List a)
+(List.concat -a:Type xs:(List a) ys:(List a)): (List a)
   (List.concat a (List.nil a)       ys) = ys
   (List.concat a (List.cons a x xs) ys) = (List.cons a x (List.concat a xs ys))
 
-(List.fold a:Type r:Type xs:(List a) nil:r cons:∀(x:a)∀(xs:r)r): r
+(List.fold -a:Type -r:Type xs:(List a) nil:r cons:∀(x:a)∀(xs:r)r): r
   (List.fold a r (List.nil a)       nil cons) = nil
   (List.fold a r (List.cons a x xs) nil cons) = (cons x (List.fold a r xs nil cons))
 
-(List.to_map a:Type list:(List (Pair U60 a))) : (Map a)
+(List.to_map -a:Type list:(List (Pair U60 a))) : (Map a)
   (List.to_map a list) = (List.to_map.go a list (Map.empty a))
 
-(List.to_map.go a:Type list:(List (Pair U60 a)) map:(Map a)) : (Map a)
+(List.to_map.go -a:Type list:(List (Pair U60 a)) map:(Map a)) : (Map a)
   (List.to_map.go a (List.nil (Pair U60 a))                              map) = map
   (List.to_map.go a (List.cons (Pair U60 a) (Pair.new U60 a key val) xs) map) = (List.to_map.go a xs (Map.set a map key val))
 
@@ -210,19 +210,19 @@ String : Type
 // ===
 
 (Map a:Type) : Type
-  (Map.empty a:Type)                         : (Map a)
-  (Map.entry a:Type value:a)                 : (Map a)
-  (Map.nodes a:Type lft:(Map a) rgt:(Map a)) : (Map a)
+  (Map.empty -a:Type)                         : (Map a)
+  (Map.entry -a:Type value:a)                 : (Map a)
+  (Map.nodes -a:Type lft:(Map a) rgt:(Map a)) : (Map a)
 
-(Map.length a:Type tree:(Map a)) : U60
+(Map.length -a:Type tree:(Map a)) : U60
   (Map.length a (Map.empty a        )) = 0
   (Map.length a (Map.entry a     val)) = 1
   (Map.length a (Map.nodes a lft rgt)) = (+ (Map.length a lft) (Map.length a rgt))
 
-(Map.get a:Type tree:(Map a) key:U60) : (Pair (Map a) (Maybe a))
+(Map.get -a:Type tree:(Map a) key:U60) : (Pair (Map a) (Maybe a))
 (Map.get a tree key) = (Map.get.go a 32 tree key (λx x))
 
-(Map.get.go a:Type n:U60 tree:(Map a) key:U60 self:∀(x:(Map a))(Map a)) : (Pair (Map a) (Maybe a))
+(Map.get.go -a:Type n:U60 tree:(Map a) key:U60 self:∀(x:(Map a))(Map a)) : (Pair (Map a) (Maybe a))
   (Map.get.go a n (Map.empty a) key self) =
     (Pair.new (Map a) (Maybe a) (self (Map.empty a)) (Maybe.none a))
   (Map.get.go a n (Map.entry a val) key self) =
@@ -230,52 +230,52 @@ String : Type
   (Map.get.go a n (Map.nodes a lft rgt) key self) =
     (Map.get.go.nodes a (& (>> key (- n 1)) 1) (- n 1) key lft rgt self)
 
-(Map.get.go.nodes a:Type i:U60 n:U60 key:U60 lft:(Map a) rgt:(Map a) self:∀(x:(Map a))(Map a)) : (Pair (Map a) (Maybe a))
+(Map.get.go.nodes -a:Type i:U60 n:U60 key:U60 lft:(Map a) rgt:(Map a) self:∀(x:(Map a))(Map a)) : (Pair (Map a) (Maybe a))
   (Map.get.go.nodes a 0 n key lft rgt self) =
     (Map.get.go a n lft key λx(self (Map.nodes a x rgt)))
   (Map.get.go.nodes a 1 n key lft rgt self) =
     (Map.get.go a n rgt key λx(self (Map.nodes a lft x)))
 
-(Map.delete a:Type tree:(Map a) key:U60) : (Map a)
+(Map.delete -a:Type tree:(Map a) key:U60) : (Map a)
 (Map.delete a tree key) = (Map.delete.go a 32 tree key)
 
-(Map.delete.go a:Type n:U60 tree:(Map a) key:U60) : (Map a)
+(Map.delete.go -a:Type n:U60 tree:(Map a) key:U60) : (Map a)
   (Map.delete.go a n (Map.nodes a lft rgt) key) =
     (Map.delete.go.nodes a (& (>> key (- n 1)) 1) (- n 1) lft rgt key)
   (Map.delete.go a n tree key) = (Map.empty a)
 
-(Map.delete.go.nodes a:Type i:U60 n:U60 lft:(Map a) rgt:(Map a) key:U60) : (Map a)
+(Map.delete.go.nodes -a:Type i:U60 n:U60 lft:(Map a) rgt:(Map a) key:U60) : (Map a)
   (Map.delete.go.nodes a 0 n lft rgt key) =
     (Map.nodes a (Map.delete.go a n lft key) rgt)
   (Map.delete.go.nodes a 1 n lft rgt key) =
     (Map.nodes a lft (Map.delete.go a n rgt key))
 
-(Map.set a:Type tree:(Map a) key:U60 val:a) : (Map a)
+(Map.set -a:Type tree:(Map a) key:U60 val:a) : (Map a)
 (Map.set a tree key val) = (Map.set.go a 32 tree key val)
 
-(Map.set.go a:Type n:U60 tree:(Map a) key:U60 val:a) : (Map a)
+(Map.set.go -a:Type n:U60 tree:(Map a) key:U60 val:a) : (Map a)
   (Map.set.go a 0 tree          key val) = (Map.entry a val)
   (Map.set.go a n (Map.empty a) key val) =
     (Map.set.go.empty a (& (>> key (- n 1)) 1) (- n 1) key val)
   (Map.set.go a n (Map.nodes a lft rgt) key val) =
     (Map.empty a)
 
-(Map.set.go.empty a:Type i:U60 n:U60 key:U60 val:a) : (Map a)
+(Map.set.go.empty -a:Type i:U60 n:U60 key:U60 val:a) : (Map a)
   (Map.set.go.empty a 0 n key val) =
     (Map.nodes a (Map.set.go a n (Map.empty a) key val) (Map.empty a))
   (Map.set.go.empty a 1 n key val) =
     (Map.nodes a (Map.empty a) (Map.set.go a n (Map.empty a) key val))
 
-(Map.set.go.nodes a:Type i:U60 n:U60 key:U60 lft:(Map a) rgt:(Map a) val:a) : (Map a)
+(Map.set.go.nodes -a:Type i:U60 n:U60 key:U60 lft:(Map a) rgt:(Map a) val:a) : (Map a)
   (Map.set.go.nodes a 0 n key lft rgt val) =
     (Map.nodes a (Map.set.go a n lft key val) rgt)
   (Map.set.go.nodes a 1 n key lft rgt val) =
     (Map.nodes a lft (Map.set.go a n rgt key val))
 
-(Map.mut a:Type tree:(Map a) key:U60 f:∀(v:a)a) : (Map a)
+(Map.mut -a:Type tree:(Map a) key:U60 f:∀(v:a)a) : (Map a)
 (Map.mut a tree key f) = (Map.mut.go a 32 tree key f)
 
-(Map.mut.go a:Type n:U60 tree:(Map a) key:U60 f:∀(v:a)a) : (Map a)
+(Map.mut.go -a:Type n:U60 tree:(Map a) key:U60 f:∀(v:a)a) : (Map a)
   (Map.mut.go a 0 (Map.entry a x) key f) = (Map.entry a (f x))
   (Map.mut.go a 0 tree            key f) = tree
   (Map.mut.go a n (Map.empty a)   key f) =
@@ -283,32 +283,32 @@ String : Type
   (Map.mut.go a n (Map.nodes a lft rgt) key f) =
     (Map.mut.go.nodes a (& (>> key (- n 1)) 1) (- n 1) key lft rgt f)
 
-(Map.mut.go.empty a:Type i:U60 n:U60 key:U60 f:∀(v:a)a) : (Map a)
+(Map.mut.go.empty -a:Type i:U60 n:U60 key:U60 f:∀(v:a)a) : (Map a)
   (Map.mut.go.empty a 0 n key f) =
     (Map.nodes a (Map.mut.go a n (Map.empty a) key f) (Map.empty a))
   (Map.mut.go.empty a 1 n key f) =
     (Map.nodes a (Map.empty a) (Map.mut.go a n (Map.empty a) key f))
 
-(Map.mut.go.nodes a:Type i:U60 n:U60 key:U60 lft:(Map a) rgt:(Map a) f:∀(v:a)a) : (Map a)
+(Map.mut.go.nodes -a:Type i:U60 n:U60 key:U60 lft:(Map a) rgt:(Map a) f:∀(v:a)a) : (Map a)
   (Map.mut.go.nodes a 0 n key lft rgt f) =
     (Map.nodes a (Map.mut.go a n lft key f) rgt)
   (Map.mut.go.nodes a 1 n key lft rgt f) =
     (Map.nodes a lft (Map.mut.go a n rgt key f))
 
-(Map.to_list a:Type val:(Map a)) : (List (Pair U60 a))
+(Map.to_list -a:Type val:(Map a)) : (List (Pair U60 a))
   (Map.to_list a val) = ((Map.to_list.go a val 0) (List.nil (Pair U60 a)))
 
-(Map.to_list.go a:Type val:(Map a) key:U60) : ∀(x:(List (Pair U60 a)))(List (Pair U60 a))
+(Map.to_list.go -a:Type val:(Map a) key:U60) : ∀(x:(List (Pair U60 a)))(List (Pair U60 a))
   (Map.to_list.go a (Map.empty a)     key) = λx x
   (Map.to_list.go a (Map.entry a val) key) = λx
     (List.cons (Pair U60 a) (Pair.new U60 a key val) x)
   (Map.to_list.go a (Map.nodes a lft rgt) key) = λx
     ((Map.to_list.go a lft (* key 2)) ((Map.to_list.go a rgt (+ (* key 2) 1)) x))
 
-(Map.values a:Type val:(Map a)) : (List a)
+(Map.values -a:Type val:(Map a)) : (List a)
   (Map.values a val) = ((Map.values.go a val) (List.nil a))
 
-(Map.values.go a:Type val:(Map a)) : ∀(x:(List a))(List a)
+(Map.values.go -a:Type val:(Map a)) : ∀(x:(List a))(List a)
   (Map.values.go a (Map.empty a)        ) = λx x
   (Map.values.go a (Map.entry a val    )) = λx (List.cons a val x)
   (Map.values.go a (Map.nodes a lft rgt)) = λx ((Map.values.go a lft) ((Map.values.go a rgt) x))
@@ -320,8 +320,8 @@ Code : Type
   Code = String
 
 (Answer a:Type): Type
-  (Answer.parsed a:Type code:(Code) result:a) : (Answer a)
-  (Answer.failed a:Type err:String) : (Answer a)
+  (Answer.parsed -a:Type code:(Code) result:a) : (Answer a)
+  (Answer.failed -a:Type err:String) : (Answer a)
 
 (Parser a:Type): Type
   (Parser a) = ∀(x: Code) (Answer a)
@@ -361,14 +361,14 @@ Code : Type
     (| (== '!' chr)
        0))))))))))))
 
-(Parser.bind a:Type b:Type a_parser:(Parser a) f:(∀(x:a)(Parser b))): (Parser b)
+(Parser.bind -a:Type -b:Type a_parser:(Parser a) f:(∀(x:a)(Parser b))): (Parser b)
   (Parser.bind a b a_parser f) = λcode (Parser.bind.go a b f (a_parser code))
 
-(Parser.bind.go a:Type b:Type f:(∀(x:a)(Parser b)) a_res:(Answer a)) : (Answer b)
+(Parser.bind.go -a:Type -b:Type f:(∀(x:a)(Parser b)) a_res:(Answer a)) : (Answer b)
   (Parser.bind.go a b f (Answer.parsed a code a_val)) = (f a_val code)
   (Parser.bind.go a b f (Answer.failed a err))        = (Answer.failed b err)
 
-(Parser.done a:Type value:a) : (Parser a)
+(Parser.done -a:Type value:a) : (Parser a)
   (Parser.done a value) = λcode (Answer.parsed a code value)
 
 (Char.is_space chr:Char) : U60
@@ -470,10 +470,10 @@ Code : Type
   (Parser.parse_end.go String.nil)         = (Answer.parsed Bool String.nil Bool.true)
   (Parser.parse_end.go (String.cons x xs)) = (Answer.parsed Bool (String.cons x xs) Bool.false)
 
-(Parser.parse_until a:Type stop:(Parser Bool) parser:(Parser a)) : (Parser (List a))
+(Parser.parse_until -a:Type stop:(Parser Bool) parser:(Parser a)) : (Parser (List a))
   (Parser.parse_until a stop parser) = (Parser.bind Bool (List a) stop λs (Parser.parse_until.go a s stop parser))
 
-(Parser.parse_until.go a:Type s:Bool stop:(Parser Bool) parser:(Parser a)) : (Parser (List a))
+(Parser.parse_until.go -a:Type s:Bool stop:(Parser Bool) parser:(Parser a)) : (Parser (List a))
   (Parser.parse_until.go a Bool.false stop parser) =
     (Parser.bind a        (List a) parser                             λhead 
     (Parser.bind (List a) (List a) (Parser.parse_until a stop parser) λtail 
@@ -481,20 +481,20 @@ Code : Type
   (Parser.parse_until.go a Bool.true stop parser) =
     (Parser.done (List a) (List.nil a))
 
-(Parser.grammar a:Type choices:(List (Parser (Maybe a))))          : (Parser a)
+(Parser.grammar -a:Type choices:(List (Parser (Maybe a))))          : (Parser a)
   (Parser.grammar a (List.nil (Parser (Maybe a))))                 = λcode (Answer.failed a "TODO: Parser.grammer empty list")
   (Parser.grammar a (List.cons (Parser (Maybe a)) choice choices)) = λcode (Parser.grammar.go a (choice code) choices)
 
-(Parser.grammar.go a:Type choice_res:(Answer (Maybe a)) choices:(List (Parser (Maybe a)))) : (Answer a)
+(Parser.grammar.go -a:Type choice_res:(Answer (Maybe a)) choices:(List (Parser (Maybe a)))) : (Answer a)
   (Parser.grammar.go a (Answer.failed a err)                        choices) = (Answer.failed a err)
   (Parser.grammar.go a (Answer.parsed a code (Maybe.none a))        choices) = ((Parser.grammar a choices) code)
   (Parser.grammar.go a (Answer.parsed a code (Maybe.some a result)) choices) = (Answer.parsed a code result)
 
 // Note: unlike Rust's version, this won't rollback
-(Parser.guard a:Type head:(Parser Bool) body:(Parser a)) : (Parser (Maybe a))
+(Parser.guard -a:Type head:(Parser Bool) body:(Parser a)) : (Parser (Maybe a))
   (Parser.guard a head body) = λcode (Parser.guard.go a (head code) body)
 
-(Parser.guard.go a:Type head_res:(Answer Bool) body:(Parser a)) : (Answer (Maybe a))
+(Parser.guard.go -a:Type head_res:(Answer Bool) body:(Parser a)) : (Answer (Maybe a))
   (Parser.guard.go a (Answer.failed Bool err)             body) = (Answer.failed (Maybe a) err)
   (Parser.guard.go a (Answer.parsed Bool code Bool.false) body) = (Answer.parsed (Maybe a) code (Maybe.none a))
   (Parser.guard.go a (Answer.parsed Bool code Bool.true)  body) = ((Parser.bind a (Maybe a) body λgot (Parser.done _ (Maybe.some a got))) code)
@@ -1126,12 +1126,12 @@ File : Type
   (Uses.shadow 0 nm body)             = (Uses nm body)
   (Uses.shadow 1 nm body)             = 0
 
-(Clone a:Type n:U60 name:Name term:a ctx:(List (Pair Name a))) : (List (Pair Name a))
+(Clone -a:Type n:U60 name:Name term:a ctx:(List (Pair Name a))) : (List (Pair Name a))
   (Clone a 0 name term ctx) = ctx
   (Clone a 1 name term ctx) = (List.cons (Pair Name a) (Pair.new Name a name term) ctx)
   (Clone a n name term ctx) = (List.cons (Pair Name a) (Pair.new Name a name term) (Clone a (- n 1) name term ctx))
 
-(CloneFor a:Type body:Term name:Name term:a ctx:(List (Pair Name a))) : (List (Pair Name a))
+(CloneFor -a:Type body:Term name:Name term:a ctx:(List (Pair Name a))) : (List (Pair Name a))
   (CloneFor a body name term ctx) = (Clone a (Uses name body) name term ctx)
 
 HTerm : Type
@@ -1307,5 +1307,5 @@ VarPair = (Pair String HTerm)
   //(HApply (HTerm.lam fbody) argm) = (fbody argm)
   //(HApply func         argm) = (HTerm.app func argm)
 
-(Main) : U60
-(Main) = (+ 70 50)
+(Main n:U60) : U60
+(Main n) = (+ 70 50)

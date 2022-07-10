@@ -74,6 +74,9 @@
 (Maybe.Case (Some x) case_none case_some) = (case_some x)
 (Maybe.Case None     case_none case_some) = case_none
 
+// (Maybe.Bind a_maybe:(Maybe a) b_maybe:(∀a (Maybe b))) : (Maybe b)
+(Maybe.Bind (Some x) cont) = (cont x)
+(Maybe.Bind None     cont) = None
 
 
 // List
@@ -692,6 +695,9 @@ ParseEnd = λcode (ParseEnd.Go code)
 // (Ctr.GetArgs Term) : (List Term)
 (Ctr.GetArgs (Cts ctid args)) = args
 (Ctr.GetArgs term)            = [] 
+
+(N32.GetValue (N32 value)) = value
+(N32.GetValue term)        = 0
 
 (Ann.IsErased (Ann eras expr type)) = eras
 (Ann.IsErased term)                 = False
@@ -1748,12 +1754,16 @@ FuncEmpty = (Func (Var (Name.Make "?")) (Var (Name.Make "?")) End)
       ((String.Show.Go ")")
       x)))))
   (Compile.HVM.Go file (Cts ctid args)) =
-    let typs = (Maybe.Case (File.GetFunc file ctid) [] λf(Ctr.GetArgs (Func.GetInputType f)))
-    λx((String.Show.Go "(")
-      ((String.Show.Go (Name.GetString ctid))
-      ((Compile.HVM.Go.Cts.Args file typs args)
-      ((String.Show.Go ")")
-      x))))
+    (Maybe.Case (Compile.StringLiteral.Go (Cts ctid args))
+      // case none
+      let typs = (Maybe.Case (File.GetFunc file ctid) [] λf(Ctr.GetArgs (Func.GetInputType f)))
+      λx((String.Show.Go "(")
+        ((String.Show.Go (Name.GetString ctid))
+        ((Compile.HVM.Go.Cts.Args file typs args)
+        ((String.Show.Go ")")
+        x))))
+      // case some
+      λres λx (res x))
   (Compile.HVM.Go file (Eql val0 val1)) =
     λx((String.Show.Go "0")
       x)
@@ -1769,6 +1779,32 @@ FuncEmpty = (Func (Var (Name.Make "?")) (Var (Name.Make "?")) End)
     λx((If (Ann.IsErased typ) λx(x) λx((String.Show.Go " ") ((Compile.HVM.Go file arg) x)))
       ((Compile.HVM.Go.Cts.Args file typs args)
       x))
+
+// (Compile.StringLiteral Term) : (Maybe (∀Term -> Term))
+(Compile.StringLiteral term) = (Maybe.Case (Compile.StringLiteral.Go term) None λx(x StrNil))
+  (Compile.StringLiteral.Go term) = (Maybe.Case (Compile.StringLiteral.Go.Ini term) None λs(Some λx(StrCons '"' (s (StrCons '"' x)))))
+    (Compile.StringLiteral.Go.Ini (Cts ctid args)) = (Compile.StringLiteral.Go.Cts (Name.GetHash ctid) args)
+    (Compile.StringLiteral.Go.Ini other) = None
+      (Compile.StringLiteral.Go.Cts 2296656871382740  args) = (Some λx(x))
+      (Compile.StringLiteral.Go.Cts 71196363012543182 args) = (Compile.StringLiteral.Go.Cts.StrCons args)
+        (Compile.StringLiteral.Go.Cts.StrCons (Cons chr (Cons chrs Nil))) =
+          let val = (N32.GetValue chr)
+          (U60.If (== val '"')
+            // then
+            None
+            // else
+            (Maybe.Bind (Compile.StringLiteral.Go.Ini chrs) λstr
+            (Some λx(StrCons val (str x)))))
+        (Compile.StringLiteral.Go.Cts.StrCons (Cons chr Nil)) = None
+        (Compile.StringLiteral.Go.Cts.StrCons Nil) = None
+      (Compile.StringLiteral.Go.Cts ctid args) = None
+
+(Main n) = (Compile.StringLiteral.Go
+  (Cts (Name.Make "String.cons") [
+    (N32 'a')
+    (Cts (Name.Make "String.nil") [])
+  ]))
+
 
 (Oper.Show.Go ADD) = (String.Show.Go "+")
 (Oper.Show.Go SUB) = (String.Show.Go "-")
@@ -1942,5 +1978,11 @@ FuncEmpty = (Func (Var (Name.Make "?")) (Var (Name.Make "?")) End)
     //let rst = (Kind2.Compile.go.1 xs)
     //(String.Show.Go "aaaa " x)
 
-(Main n) = (Kind2.Check Test.0)
+//(Main n) = (Kind2.Check Test.0)
+
+
+
+
+//(Ctr (Name "String.cons" 71196363012543182) [(N32 97), (Ctr (Name "String.nil" 2296656871382740) [])])
+
 //(Main n) = (Kind2.Run Test.0)
