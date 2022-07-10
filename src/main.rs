@@ -53,9 +53,9 @@ fn main() {
 
 pub fn build_str_term(txt: &str) -> hvm::language::Term {
   use hvm::language::Term;
-  let empty = Term::Ctr { name: "StrNil".to_string(), args: Vec::new() };
+  let empty = Term::Ctr { name: "String.nil".to_string(), args: Vec::new() };
   let list = txt.chars().rfold(empty, |t, c| Term::Ctr {
-    name: "StrCons".to_string(),
+    name: "String.cons".to_string(),
     args: vec![Box::new(Term::Num { numb: c as u64 }), Box::new(t)],
   });
   list
@@ -153,8 +153,8 @@ fn do_the_thing(kind2_code: &str, call_fn_name: &str, call_fn_argm: &str) -> Res
   // Converts the HVM "file" to a Rulebook
   let book = rb::gen_rulebook(&file);
 
-  let str_cons = *book.name_to_id.get("StrCons").unwrap_or(&0);
-  let str_nil  = *book.name_to_id.get("StrNil").unwrap_or(&1);
+  let str_cons = *book.name_to_id.get("String.cons").unwrap_or(&0);
+  let str_nil  = *book.name_to_id.get("String.nil").unwrap_or(&1);
 
   // Builds worker
   let mut worker = rt::new_worker();
@@ -169,11 +169,11 @@ fn do_the_thing(kind2_code: &str, call_fn_name: &str, call_fn_argm: &str) -> Res
   };
   let main_pos = bd::alloc_term(&mut worker, &book, &main_call);
 
-  println!("- Reducing.");
+  println!("// Reducing.");
 
   rt::normal(&mut worker, main_pos, Some(&book.id_to_name), false);
 
-  println!("- Reduced. {} rewrites.", worker.cost);
+  println!("// Reduced. {} rewrites.", worker.cost);
 
   // Reads it back to a HVM string
   //let book = Some(book);
@@ -182,7 +182,7 @@ fn do_the_thing(kind2_code: &str, call_fn_name: &str, call_fn_argm: &str) -> Res
     //Err(..) => rd::as_code(&worker, &book, main_pos),
   //};
 
-  // FIXME: this should be a proper function that prints HVM strings (StrCons ...)
+  // FIXME: this should be a proper function that prints HVM strings (String.cons ...)
   //let mut output = format!("{}", text);
   //if &output[0 .. 2] == "\"\"" {
     //output = "\nAll terms check.\n".to_string();

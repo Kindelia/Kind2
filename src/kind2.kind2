@@ -1,3 +1,8 @@
+// Just testing. Running ./bootstrap should print "foobar"
+// Bootstrap goal: kind2.hvm receives kind2.kind, generating the same kind2.hvm
+(Main n:U60) : String
+(Main n) = (String.concat "foo" "bar")
+
 // Kind2 implemented in Kind2
 // ==========================
 
@@ -23,7 +28,6 @@
   (U60.read.go String.nil         r) = r
   (U60.read.go (String.cons x xs) r) = (U60.if U60 (& (<= '0' x) (<= x '9')) (U60.read.go xs (+ (* r 10) (- x '0'))) 0) 
 
-// TODO: parser error huh...
 (U60.show n:U60) : String
   (U60.show n) = (U60.show_build n String.nil)
 
@@ -1307,5 +1311,4 @@ VarPair = (Pair String HTerm)
   //(HApply (HTerm.lam fbody) argm) = (fbody argm)
   //(HApply func         argm) = (HTerm.app func argm)
 
-(Main n:U60) : U60
-(Main n) = (+ 70 50)
+

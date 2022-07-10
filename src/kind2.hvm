@@ -129,42 +129,42 @@
 
 // The new line string: "\n"
 // NewLine : String
-NewLine = (StrCons 10 StrNil)
+NewLine = (String.cons 10 String.nil)
 
 // Returns true if a string is empty
 // (String.IsEmpty String) : Bool
-(String.IsEmpty StrNil)         = True
-(String.IsEmpty (StrCons x xs)) = False
+(String.IsEmpty String.nil)         = True
+(String.IsEmpty (String.cons x xs)) = False
 
 // Concatenates two strings
 // (String.Concat a:String b:String) : String
-(String.Concat StrNil         ys) = ys
-(String.Concat (StrCons x xs) ys) = (StrCons x (String.Concat xs ys))
+(String.Concat String.nil         ys) = ys
+(String.Concat (String.cons x xs) ys) = (String.cons x (String.Concat xs ys))
 
 // Concatenates a list of strings
 // (String.Flatten a:(List String)) : String
-(String.Flatten Nil)         = StrNil
+(String.Flatten Nil)         = String.nil
 (String.Flatten (Cons x xs)) = (String.Concat x (String.Flatten xs))
 
 // Returns true if two strings are equal
 // (String.Equal (List String) (List String)) : U60
-(String.Equal StrNil         StrNil)         = 1
-(String.Equal (StrCons x xs) (StrCons y ys)) = (& (== x y) (String.Equal xs ys))
+(String.Equal String.nil         String.nil)         = 1
+(String.Equal (String.cons x xs) (String.cons y ys)) = (& (== x y) (String.Equal xs ys))
 (String.Equal xs             ys)             = 0
 
 // Todo: improve this
 // (String.Hash String) : String
 (String.Hash str) = (String.Hash.Go str 0)
-  (String.Hash.Go StrNil         hash) = hash
-  (String.Hash.Go (StrCons x xs) hash) = (String.Hash.Go xs (+ (- (<< hash 5) hash) x))
+  (String.Hash.Go String.nil         hash) = hash
+  (String.Hash.Go (String.cons x xs) hash) = (String.Hash.Go xs (+ (- (<< hash 5) hash) x))
 
 // (String.IsEmpty String) : U60
-(String.IsEmpty StrNil) = 1
-(String.IsEmpty (StrCons x xs)) = 0
+(String.IsEmpty String.nil) = 1
+(String.IsEmpty (String.cons x xs)) = 0
 
 // String.Map
-(String.Map StrNil fn)         = StrNil
-(String.Map (StrCons x xs) fn) = (StrCons (fn x) (String.Map xs fn))
+(String.Map String.nil fn)         = String.nil
+(String.Map (String.cons x xs) fn) = (String.cons (fn x) (String.Map xs fn))
 
 // String.Join
 (String.Join Nil          sep) = ""
@@ -300,28 +300,28 @@ NewLine = (StrCons 10 StrNil)
 
 // (ParseOne) : (Parser U60)
 (ParseOne) = λcode (ParseOne.Go code)
-  (ParseOne.Go (StrCons x xs)) = (Parsed xs x)
-  (ParseOne.Go StrNil)         = (Parsed StrNil 0)
+  (ParseOne.Go (String.cons x xs)) = (Parsed xs x)
+  (ParseOne.Go String.nil)         = (Parsed String.nil 0)
 
 // (GetName String) : (Pair code:String name:String)
 (GetName) = λcode (GetName.Go code)
-  (GetName.Go StrNil)                 = (Pair StrNil StrNil)
-  (GetName.Go (StrCons head tail))    = (GetName_1 (IsNameChar head) head tail)
-    (GetName_1 0 head tail)           = (Pair (StrCons head tail) StrNil)
+  (GetName.Go String.nil)                 = (Pair String.nil String.nil)
+  (GetName.Go (String.cons head tail))    = (GetName_1 (IsNameChar head) head tail)
+    (GetName_1 0 head tail)           = (Pair (String.cons head tail) String.nil)
     (GetName_1 1 head tail)           = (GetName_2 head (GetName.Go tail))
-    (GetName_2 head (Pair code name)) = (Pair code (StrCons head name))
+    (GetName_2 head (Pair code name)) = (Pair code (String.cons head name))
 
 // (Matcher text:String) : (Parser Bool)
 (Matcher consume text) = λcode (Matcher.Go text code consume λx(x))
   (Matcher.Go Nil         ys             consume redo) = (Parsed ((If consume λx(x) redo) ys) True)
-  (Matcher.Go (Cons x xs) StrNil         consume redo) = (Parsed (redo StrNil) False)
-  (Matcher.Go (Cons x xs) (StrCons y ys) consume redo) = (MatcherTest (x y) xs y ys consume redo)
-    (MatcherTest 0 xs y ys consume redo) = (Parsed (redo (StrCons y ys)) False)
-    (MatcherTest 1 xs y ys consume redo) = (Matcher.Go xs ys consume λk(redo (StrCons y k)))
+  (Matcher.Go (Cons x xs) String.nil         consume redo) = (Parsed (redo String.nil) False)
+  (Matcher.Go (Cons x xs) (String.cons y ys) consume redo) = (MatcherTest (x y) xs y ys consume redo)
+    (MatcherTest 0 xs y ys consume redo) = (Parsed (redo (String.cons y ys)) False)
+    (MatcherTest 1 xs y ys consume redo) = (Matcher.Go xs ys consume λk(redo (String.cons y k)))
 
 // (TextComparer String) : (∀Char Bool)
-(TextComparer StrNil)         = Nil
-(TextComparer (StrCons x xs)) = (Cons λc(== x c) (TextComparer xs))
+(TextComparer String.nil)         = Nil
+(TextComparer (String.cons x xs)) = (Cons λc(== x c) (TextComparer xs))
 
 // (PeekCondsHere conds:(∀Char Bool)) : (Parser Bool)
 (PeekCondsHere conds) = λcode ((Matcher False conds) code)
@@ -360,15 +360,15 @@ NewLine = (StrCons 10 StrNil)
 
 // Skips spaces and comments
 // (Skipper String) : String
-(Skipper StrNil)         = StrNil
-(Skipper (StrCons x xs)) = (Skipper.Go (IsSpace x) (== x '/') x xs)
+(Skipper String.nil)         = String.nil
+(Skipper (String.cons x xs)) = (Skipper.Go (IsSpace x) (== x '/') x xs)
 
-  (Skipper.Go 0 0 x xs)   = (StrCons x xs)
+  (Skipper.Go 0 0 x xs)   = (String.cons x xs)
   (Skipper.Go 1 c x xs)   = (Skipper xs)
   (Skipper.Go s 1 x xs)   = (Skipper.DropComment xs)
 
-  (Skipper.DropComment StrNil)         = StrNil
-  (Skipper.DropComment (StrCons x xs)) = (Skipper.DropComment.Go (== x 10) x xs) 
+  (Skipper.DropComment String.nil)         = String.nil
+  (Skipper.DropComment (String.cons x xs)) = (Skipper.DropComment.Go (== x 10) x xs) 
     
     (Skipper.DropComment.Go 1 x xs) = (Skipper xs)
     (Skipper.DropComment.Go 0 x xs) = (Skipper.DropComment xs)
@@ -382,8 +382,8 @@ ParseName = λcode ((ParseNameHere) (Skipper code))
 
 // (ParseEnd) : (Parser Bool)
 ParseEnd = λcode (ParseEnd.Go code)
-  (ParseEnd.Go StrNil)         = (Parsed Nil True)
-  (ParseEnd.Go (StrCons x xs)) = (Parsed (StrCons x xs) False)
+  (ParseEnd.Go String.nil)         = (Parsed Nil True)
+  (ParseEnd.Go (String.cons x xs)) = (Parsed (String.cons x xs) False)
 
 // Parses until a stop condition is true.
 // (ParseUntil stop:(Parser Bool) parser:(Parser a) ) : (Parser (List a))
@@ -426,14 +426,14 @@ ParseEnd = λcode (ParseEnd.Go code)
   (Bind ParseName       λname
   (ParseVar.0 eras name)))
 
-  (ParseVar.0 eras StrNil)         = (Done None)
-  (ParseVar.0 eras (StrCons x xs)) = (ParseVar.1
+  (ParseVar.0 eras String.nil)         = (Done None)
+  (ParseVar.0 eras (String.cons x xs)) = (ParseVar.1
     eras
-    (String.Equal (StrCons x xs) "Type")
-    (String.Equal (StrCons x xs) "U60")
+    (String.Equal (String.cons x xs) "Type")
+    (String.Equal (String.cons x xs) "U60")
     (IsUpper x)
     (IsNumeric x)
-    (StrCons x xs))
+    (String.cons x xs))
 
   (ParseVar.1 eras 1 _ _ _ str) = (Done (Some Typ))
   (ParseVar.1 eras _ 1 _ _ str) = (Done (Some U60))
@@ -528,8 +528,8 @@ ParseEnd = λcode (ParseEnd.Go code)
   (Done (N32 chr)))))
 
 // (ParseStr) : (Parser (Maybe Term))
-(ParseStr) = (Guard (MatchText (StrCons '"' StrNil))
-  (Bind (ParseUntil (MatchText (StrCons '"' StrNil)) ParseOne) λchars
+(ParseStr) = (Guard (MatchText (String.cons '"' String.nil))
+  (Bind (ParseUntil (MatchText (String.cons '"' String.nil)) ParseOne) λchars
   (Done (ParseStr.Make chars))))
 
 (ParseStr.Make (Cons x xs)) = (Cts (Name.Make "String.cons") [(N32 x) (ParseStr.Make xs)])
@@ -983,15 +983,15 @@ FuncEmpty = (Func (Var (Name.Make "?")) (Var (Name.Make "?")) End)
       x)))))
 
 // (U60.Show U60) : String
-(U60.Show n) = (U60.ShowBuild n StrNil)
+(U60.Show n) = (U60.ShowBuild n String.nil)
   (U60.ShowBuild n str) = 
-    let next = (StrCons (+ 48 (% n 10)) str)
+    let next = (String.cons (+ 48 (% n 10)) str)
     ((U60.If (< n 10) λx(x) λx(U60.ShowBuild (/ n 10) x)) next)
 
 // (U60.Read String) : U60
 (U60.Read str) = (U60.Read.Go str 0)
-  (U60.Read.Go StrNil         r) = r
-  (U60.Read.Go (StrCons x xs) r) = (U60.If (& (<= '0' x) (<= x '9')) (U60.Read.Go xs (+ (* r 10) (- x '0'))) 0)
+  (U60.Read.Go String.nil         r) = r
+  (U60.Read.Go (String.cons x xs) r) = (U60.If (& (<= '0' x) (<= x '9')) (U60.Read.Go xs (+ (* r 10) (- x '0'))) 0)
 
 // Evaluation
 // ----------
@@ -1228,13 +1228,13 @@ FuncEmpty = (Func (Var (Name.Make "?")) (Var (Name.Make "?")) End)
     (Gol name)
 
   (Low.Go (HAll type body) depth) =
-    let name = (Name.Make (StrCons (+ 97 depth) StrNil))
+    let name = (Name.Make (String.cons (+ 97 depth) String.nil))
     let type = (Low.Go type depth)
     let body = (Low.Go (body (HVar name)) (+ depth 1))
     (All name type body)
 
   (Low.Go (HLam body) depth) =
-    let name = (Name.Make (StrCons (+ 97 depth) StrNil))
+    let name = (Name.Make (String.cons (+ 97 depth) String.nil))
     let body = (Low.Go (body (HVar name)) (+ depth 1))
     (Lam name body)
 
@@ -1257,7 +1257,7 @@ FuncEmpty = (Func (Var (Name.Make "?")) (Var (Name.Make "?")) End)
     (Rfl expr)
 
   (Low.Go (HRwt name witn goal expr) depth) =
-    let name = (Name.Make (StrCons (+ 97 depth) StrNil))
+    let name = (Name.Make (String.cons (+ 97 depth) String.nil))
     let witn = (Low.Go witn depth)
     let goal = (Low.Go (goal (HVar name)) (+ depth 1))
     let expr = (Low.Go expr depth)
@@ -1614,11 +1614,11 @@ FuncEmpty = (Func (Var (Name.Make "?")) (Var (Name.Make "?")) End)
 
 // (Verify.File File) : String
 (Verify.File file) = (Verify.End (Verify.Funcs file (Map.Values (File.GetFuncs file))))
-  (Verify.End StrNil) = "All terms check."
+  (Verify.End String.nil) = "All terms check."
   (Verify.End errors) = errors
 
 // (Verify.Funcs File (List Func)) : String
-(Verify.Funcs file Nil) = StrNil
+(Verify.Funcs file Nil) = String.nil
 (Verify.Funcs file (Cons func funcs)) =
   let head = (Verify.Func file func)
   let tail = (Verify.Funcs file funcs)
@@ -1781,22 +1781,22 @@ FuncEmpty = (Func (Var (Name.Make "?")) (Var (Name.Make "?")) End)
       x))
 
 // (Compile.StringLiteral Term) : (Maybe (∀Term -> Term))
-(Compile.StringLiteral term) = (Maybe.Case (Compile.StringLiteral.Go term) None λx(x StrNil))
-  (Compile.StringLiteral.Go term) = (Maybe.Case (Compile.StringLiteral.Go.Ini term) None λs(Some λx(StrCons '"' (s (StrCons '"' x)))))
+(Compile.StringLiteral term) = (Maybe.Case (Compile.StringLiteral.Go term) None λx(x String.nil))
+  (Compile.StringLiteral.Go term) = (Maybe.Case (Compile.StringLiteral.Go.Ini term) None λs(Some λx(String.cons '"' (s (String.cons '"' x)))))
     (Compile.StringLiteral.Go.Ini (Cts ctid args)) = (Compile.StringLiteral.Go.Cts (Name.GetHash ctid) args)
     (Compile.StringLiteral.Go.Ini other) = None
       (Compile.StringLiteral.Go.Cts 2296656871382740  args) = (Some λx(x))
-      (Compile.StringLiteral.Go.Cts 71196363012543182 args) = (Compile.StringLiteral.Go.Cts.StrCons args)
-        (Compile.StringLiteral.Go.Cts.StrCons (Cons chr (Cons chrs Nil))) =
+      (Compile.StringLiteral.Go.Cts 71196363012543182 args) = (Compile.StringLiteral.Go.Cts.String.cons args)
+        (Compile.StringLiteral.Go.Cts.String.cons (Cons chr (Cons chrs Nil))) =
           let val = (N32.GetValue chr)
           (U60.If (== val '"')
             // then
             None
             // else
             (Maybe.Bind (Compile.StringLiteral.Go.Ini chrs) λstr
-            (Some λx(StrCons val (str x)))))
-        (Compile.StringLiteral.Go.Cts.StrCons (Cons chr Nil)) = None
-        (Compile.StringLiteral.Go.Cts.StrCons Nil) = None
+            (Some λx(String.cons val (str x)))))
+        (Compile.StringLiteral.Go.Cts.String.cons (Cons chr Nil)) = None
+        (Compile.StringLiteral.Go.Cts.String.cons Nil) = None
       (Compile.StringLiteral.Go.Cts ctid args) = None
 
 (Main n) = (Compile.StringLiteral.Go
