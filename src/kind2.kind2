@@ -1,10 +1,12 @@
-// Just testing. Running ./bootstrap should print "foobar"
-// Bootstrap goal: kind2.hvm receives kind2.kind, generating the same kind2.hvm
-(Main n:U60) : String
-(Main n) = (String.concat "foo" "bar")
-
 // Kind2 implemented in Kind2
 // ==========================
+
+// Test. Running './bootstrap.hs' should produce a correct `main.hvm` file
+Main : (List U60)
+Main =
+  let a = (List.cons U60 1 (List.cons U60 2 (List.nil U60)))
+  let b = (List.cons U60 3 (List.cons U60 4 (List.nil U60)))
+  (List.concat U60 a b)
 
 // U60
 // ===

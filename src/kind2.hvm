@@ -36,6 +36,17 @@
 (U60.Not 0) = 1
 (U60.Not 1) = 0
 
+// (U60.Show U60) : String
+(U60.Show n) = (U60.ShowBuild n String.nil)
+  (U60.ShowBuild n str) = 
+    let next = (String.cons (+ 48 (% n 10)) str)
+    ((U60.If (< n 10) λx(x) λx(U60.ShowBuild (/ n 10) x)) next)
+
+// (U60.Read String) : U60
+(U60.Read str) = (U60.Read.Go str 0)
+  (U60.Read.Go String.nil         r) = r
+  (U60.Read.Go (String.cons x xs) r) = (U60.If (& (<= '0' x) (<= x '9')) (U60.Read.Go xs (+ (* r 10) (- x '0'))) 0)
+
 
 
 // Bool
@@ -981,17 +992,6 @@ FuncEmpty = (Func (Var (Name.Make "?")) (Var (Name.Make "?")) End)
       ((String.Show.Go NewLine)
       ((Rules.Show.Go rules file)
       x)))))
-
-// (U60.Show U60) : String
-(U60.Show n) = (U60.ShowBuild n String.nil)
-  (U60.ShowBuild n str) = 
-    let next = (String.cons (+ 48 (% n 10)) str)
-    ((U60.If (< n 10) λx(x) λx(U60.ShowBuild (/ n 10) x)) next)
-
-// (U60.Read String) : U60
-(U60.Read str) = (U60.Read.Go str 0)
-  (U60.Read.Go String.nil         r) = r
-  (U60.Read.Go (String.cons x xs) r) = (U60.If (& (<= '0' x) (<= x '9')) (U60.Read.Go xs (+ (* r 10) (- x '0'))) 0)
 
 // Evaluation
 // ----------
