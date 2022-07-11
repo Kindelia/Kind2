@@ -212,6 +212,25 @@ String : Type
   (String.join (List.cons String x (List.nil String))  sep) = x
   (String.join (List.cons String x xs)                 sep) = (String.flatten (List.cons String x (List.cons String (String.join xs sep) (List.nil String))))
 
+(String.take n:U60 xs:String) : String
+  (String.take 0 xs) = String.nil
+  (String.take n (String.cons x xs)) = (String.cons x (String.take (- n 1) xs))
+
+(String.length xs:String) : U60
+  (String.length String.nil)         = 0
+  (String.length (String.cons x xs)) = (+ 1 (String.length xs))
+
+(String.find text:String target:String) : (Maybe U60)
+  (String.find text target) = (String.find.go text target 0)
+
+(String.find.go text:String target:String n:U60) : (Maybe U60)
+  (String.find.go String.nil target n) = (Maybe.none U60)
+  (String.find.go (String.cons x xs) target n) = (String.find.go_aux (String.equal (String.take (String.length target) (String.cons x xs)) target) (String.cons x xs) target n)
+
+(String.find.go_aux found:U60 text:String target:String n:U60) : (Maybe U60)
+  (String.find.go_aux 1 text target n) = (Maybe.some U60 n)
+  (String.find.go_aux 0 (String.cons x xs) target n) = (String.find.go xs target (+ n 1))
+
 // Map
 // ===
 
