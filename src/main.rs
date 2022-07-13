@@ -61,7 +61,7 @@ pub enum Term {
   Typ,
   Var { name: String },
   Let { name: String, expr: Box<Term>, body: Box<Term> },
-  All { name: String, tipo: Box<Term>, body: Box<Term> },
+  All { name: String, typ: Box<Term>, body: Box<Term> },
   Lam { name: String, body: Box<Term> },
   App { func: Box<Term>, argm: Box<Term> },
   Ctr { name: String, args: Vec<Box<Term>> },
@@ -72,7 +72,7 @@ pub enum Term {
 pub struct Argument {
   eras: bool,
   name: String,
-  tipo: Box<Term>,
+  typ: Box<Term>,
 }
 
 #[derive(Clone, Debug)]
@@ -86,7 +86,7 @@ pub struct Rule {
 pub struct Entry {
   name: String,
   args: Vec<Box<Argument>>,
-  tipo: Box<Term>,
+  typ: Box<Term>,
   rules: Vec<Box<Rule>>
 }
 
@@ -137,10 +137,10 @@ pub fn parse_all(state: parser::State) -> parser::Answer<Option<Box<Term>>> {
       let (state, _)    = parser::consume("(", state)?;
       let (state, name) = parser::name(state)?;
       let (state, _)    = parser::consume(":", state)?;
-      let (state, tipo) = parse_term(state)?;
+      let (state, typ)  = parse_term(state)?;
       let (state, _)    = parser::consume(")", state)?;
       let (state, body) = parse_term(state)?;
-      Ok((state, Box::new(Term::All { name, tipo, body })))
+      Ok((state, Box::new(Term::All { name, typ, body })))
     }),
     state,
   )
@@ -251,20 +251,20 @@ pub fn parse_term(state: parser::State) -> parser::Answer<Box<Term>> {
 pub fn parse_entry(state: parser::State) -> parser::Answer<Box<Entry>> {
   let (state, name) = parser::name1(state)?;
   let (state, args) = parser::until(parser::text_parser(":"), Box::new(parse_argument), state)?;
-  let (state, tipo) = parse_term(state)?;
+  let (state, typ)  = parse_term(state)?;
   let (state, head) = parser::peek_char(state)?;
   if head == '=' {
     let (state, _)    = parser::consume("=", state)?;
     let (state, body) = parse_term(state)?;
     let rules = vec![Box::new(Rule { name: name.clone(), pats: vec![], body })];
-    return Ok((state, Box::new(Entry { name, args, tipo, rules })));
+    return Ok((state, Box::new(Entry { name, args, typ, rules })));
   } else if head == '{' {
     let (state, _)    = parser::consume("{", state)?;
     let name_clone = name.clone();
     let (state, rules) = parser::until(parser::text_parser("}"), Box::new(move |state| parse_rule(state, name_clone.clone())), state)?;
-    return Ok((state, Box::new(Entry { name, args, tipo, rules })));
+    return Ok((state, Box::new(Entry { name, args, typ, rules })));
   } else {
-    return Ok((state, Box::new(Entry { name, args, tipo, rules: vec![] })));
+    return Ok((state, Box::new(Entry { name, args, typ, rules: vec![] })));
   }
 }
 
@@ -279,9 +279,9 @@ pub fn parse_argument(state: parser::State) -> parser::Answer<Box<Argument>> {
   let (state, _)    = parser::consume("(", state)?;
   let (state, name) = parser::name1(state)?;
   let (state, _)    = parser::consume(":", state)?;
-  let (state, tipo) = parse_term(state)?;
+  let (state, typ)  = parse_term(state)?;
   let (state, _)    = parser::consume(")", state)?;
-  return Ok((state, Box::new(Argument { eras: false, name, tipo })));
+  return Ok((state, Box::new(Argument { eras: false, name, typ })));
 }
 
 pub fn parse_file(state: parser::State) -> parser::Answer<Box<File>> {
@@ -320,9 +320,9 @@ pub fn show_term(term: &Term) -> String {
       args.reverse();
       format!("({} {})", show_term(expr), args.iter().map(|x| show_term(x)).collect::<Vec<String>>().join(" "))
     }
-    Term::All { name, tipo, body } => {
+    Term::All { name, typ, body } => {
       let body = show_term(body);
-      format!("({}: {}) {}", name, show_term(tipo), body)
+      format!("({}: {}) {}", name, show_term(typ), body)
     }
     Term::Ctr { name, args } => {
       format!("{{{}{}}}", name, args.iter().map(|x| format!(" {}",show_term(x))).collect::<String>())
@@ -347,16 +347,16 @@ pub fn show_entry(entry: &Entry) -> String {
   let name = &entry.name;
   let mut args = vec![];
   for arg in &entry.args {
-    args.push(format!(" ({}: {})", arg.name, show_term(&arg.tipo)));
+    args.push(format!(" ({}: {})", arg.name, show_term(&arg.typ)));
   }
   if entry.rules.len() == 0 {
-    format!("{}{} : {}", name, args.join(""), show_term(&entry.tipo))
+    format!("{}{} : {}", name, args.join(""), show_term(&entry.typ))
   } else {
     let mut rules = vec![];
     for rule in &entry.rules {
       rules.push(format!("\n  {}", show_rule(rule)));
     }
-    format!("{}{} : {} {{{}\n}}", name, args.join(""), show_term(&entry.tipo), rules.join(""))
+    format!("{}{} : {} {{{}\n}}", name, args.join(""), show_term(&entry.typ), rules.join(""))
   }
 }
 
@@ -385,14 +385,14 @@ pub fn read_file(code: &str) -> Result<Box<File>, String> {
   //Let { name: String, expr: Box<Term>, body: Box<Term> },
   //App { func: Box<Term>, argm: Box<Term> },
   //Lam { name: String, body: Box<Term> },
-  //All { name: String, tipo: Box<Term>, body: Box<Term> },
+  //All { name: String, typ: Box<Term>, body: Box<Term> },
   //Ctr { name: String, args: Vec<Box<Term>> },
   //Fun { name: String, args: Vec<Box<Term>> },
 //}
 pub fn compile_term(term: &Term) -> String { 
   match term {
     Term::Typ => {
-      format!("Typ")
+     format!("Typ")
     }
     Term::Var { name } => {
       name.clone()
@@ -400,8 +400,8 @@ pub fn compile_term(term: &Term) -> String {
     Term::Let { name, expr, body } => {
       todo!()
     }
-    Term::All { name, tipo, body } => {
-      format!("(All {} λ{} {})", compile_term(tipo), name, compile_term(body))
+    Term::All { name, typ, body } => {
+      format!("(All {} λ{} {})", compile_term(typ), name, compile_term(body))
     }
     Term::Lam { name, body } => {
       format!("(Lam λ{} {})", name, compile_term(body))
@@ -429,16 +429,16 @@ pub fn compile_term(term: &Term) -> String {
 //pub struct Entry {
   //name: String,
   //args: Vec<Box<Argument>>,
-  //tipo: Box<Term>,
+  //typ: Box<Term>,
   //rules: Vec<Box<Rule>>
 //}
 pub fn compile_entry(entry: &Entry) -> String {
-  fn compile_type(args: &Vec<Box<Argument>>, tipo: &Box<Term>, index: usize) -> String {
+  fn compile_type(args: &Vec<Box<Argument>>, typ: &Box<Term>, index: usize) -> String {
     if index < args.len() {
       let arg = &args[index];
-      format!("(All {} λ{} {})", compile_term(&arg.tipo), arg.name, compile_type(args, tipo, index + 1))
+      format!("(All {} λ{} {})", compile_term(&arg.typ), arg.name, compile_type(args, typ, index + 1))
     } else {
-      compile_term(tipo)
+      compile_term(typ)
     }
   }
 
@@ -456,7 +456,7 @@ pub fn compile_entry(entry: &Entry) -> String {
 
   let mut result = String::new();
   result.push_str(&format!("    (MakeId {}.) = %{}\n", entry.name, entry.name));
-  result.push_str(&format!("    (TypeOf {}.) = {}\n", entry.name, compile_type(&entry.args, &entry.tipo, 0)));
+  result.push_str(&format!("    (TypeOf {}.) = {}\n", entry.name, compile_type(&entry.args, &entry.typ, 0)));
   for rule in &entry.rules {
     result.push_str(&compile_rule(&rule));
   }
