@@ -1799,13 +1799,6 @@ FuncEmpty = (Func (Var (Name.Make "?")) (Var (Name.Make "?")) End)
         (Compile.StringLiteral.Go.Cts.String.cons Nil) = None
       (Compile.StringLiteral.Go.Cts ctid args) = None
 
-(Main n) = (Compile.StringLiteral.Go
-  (Cts (Name.Make "String.cons") [
-    (N32 'a')
-    (Cts (Name.Make "String.nil") [])
-  ]))
-
-
 (Oper.Show.Go ADD) = (String.Show.Go "+")
 (Oper.Show.Go SUB) = (String.Show.Go "-")
 (Oper.Show.Go MUL) = (String.Show.Go "*")
@@ -1971,18 +1964,5 @@ FuncEmpty = (Func (Var (Name.Make "?")) (Var (Name.Make "?")) End)
     ((String.Show.Go NewLine)
     ((Kind2.Compile.Go.2 file rs)
     x)))))
-  //(Kind2.Compile.go.1 (Cons (DefType lhs rhs) xs)) = λx ((Kind2.Compile.go.1 xs) x)
-  //(Kind2.Compile.go.1 (Cons (DefRule lhs rhs) xs)) = λx
-    //let lhs = (Compile.HVM.go lhs)
-    //let rhs = (Compile.HVM.go rhs)
-    //let rst = (Kind2.Compile.go.1 xs)
-    //(String.Show.Go "aaaa " x)
 
-//(Main n) = (Kind2.Check Test.0)
-
-
-
-
-//(Ctr (Name "String.cons" 71196363012543182) [(N32 97), (Ctr (Name "String.nil" 2296656871382740) [])])
-
-//(Main n) = (Kind2.Run Test.0)
+(Main n) = (Kind2.Check Test.0)
