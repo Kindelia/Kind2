@@ -672,10 +672,12 @@ pub fn parse_num(state: parser::State) -> parser::Answer<Option<Box<Term>>> {
     Box::new(|state| {
       let (state, init) = get_init_index(state)?;
       let (state, _)    = parser::consume("#", state)?;
+      let (state, hexa) = parser::text("x", state)?;
+      let radix         = if hexa { 16 } else { 10 };
       let (state, name) = parser::name1(state)?;
       let (state, last) = get_last_index(state)?;
       let orig          = origin(0, init, last);
-      if let Ok(numb) = name.parse::<u64>() {
+      if let Ok(numb) = u64::from_str_radix(&name, radix) {
         Ok((state, Box::new(Term::Num { orig, numb })))
       } else {
         return parser::expected("number literal", name.len(), state);
